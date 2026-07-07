@@ -8,6 +8,8 @@ workflow.
 > **Status:** complete, runnable end-to-end, deploy-ready.
 > **Author:** Adam Pham.
 
+**🔗 Live demo:** _<!-- Paste your Streamlit Cloud URL here after deploying, e.g. https://your-app.streamlit.app -->_ &nbsp;·&nbsp; **📦 Code:** https://github.com/phamhoangquynh21-spec/credit_risk_scoring_simulator
+
 ---
 
 ## Highlights
