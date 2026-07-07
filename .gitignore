@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Models (can be large; regenerated via src/train_model.py)
+models/*.pkl
+
+# Processed data (regenerated from raw via the pipeline)
+data/processed/*.csv
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Keep folder placeholders
+!**/.gitkeep

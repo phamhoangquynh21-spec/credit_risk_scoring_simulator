@@ -1,0 +1,70 @@
+{
+  "advanced": {
+    "auc_roc": 0.792532438780534,
+    "precision": 0.441991341991342,
+    "recall": 0.713487071977638,
+    "f1": 0.5458433573910719,
+    "accuracy": 0.7168333333333333,
+    "confusion_matrix": [
+      [
+        3280,
+        1289
+      ],
+      [
+        410,
+        1021
+      ]
+    ]
+  },
+  "baseline": {
+    "auc_roc": 0.7910890072999779,
+    "precision": 0.4583531651594479,
+    "recall": 0.6729559748427673,
+    "f1": 0.5453001132502832,
+    "accuracy": 0.7323333333333333,
+    "confusion_matrix": [
+      [
+        3431,
+        1138
+      ],
+      [
+        468,
+        963
+      ]
+    ]
+  },
+  "model_type": "xgboost",
+  "n_train": 24000,
+  "n_test": 6000,
+  "default_rate": 0.23856666666666668,
+  "features": [
+    "limit_bal",
+    "sex",
+    "education",
+    "marriage",
+    "age",
+    "pay_0",
+    "pay_2",
+    "pay_3",
+    "pay_4",
+    "pay_5",
+    "pay_6",
+    "bill_amt1",
+    "bill_amt2",
+    "bill_amt3",
+    "bill_amt4",
+    "bill_amt5",
+    "bill_amt6",
+    "pay_amt1",
+    "pay_amt2",
+    "pay_amt3",
+    "pay_amt4",
+    "pay_amt5",
+    "pay_amt6",
+    "avg_bill_amt",
+    "avg_pay_amt",
+    "credit_utilization",
+    "months_delayed_count",
+    "payment_trend"
+  ]
+}
