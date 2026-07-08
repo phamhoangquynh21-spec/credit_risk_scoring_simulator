@@ -1,5 +1,6 @@
 # Credit Risk Scoring Simulator — pinned-ish dependencies
 # Python 3.11+ (developed/tested on 3.14)
+# rev 2 — touch this file to force a full Streamlit Cloud environment rebuild
 
 pandas>=2.1
 numpy>=1.26
