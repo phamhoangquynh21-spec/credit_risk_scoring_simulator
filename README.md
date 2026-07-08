@@ -21,6 +21,7 @@ workflow.
 | Plain-language SHAP explanation of each score (US2) | Dashboard → *Single Customer Prediction* |
 | AUC-ROC, confusion matrix, precision/recall, feature importance (US3) | Dashboard → *Model Performance* |
 | Risk distribution by sex / education / age (US4) | Dashboard → *Segment Analysis* |
+| **Batch scoring: upload your own customer CSV → scores + download** | Dashboard → *Batch Scoring (CSV)* |
 | Limitations + fairness audit (US5) | Dashboard → *Limitations & Disclaimer* |
 
 **Model performance (held-out test set):** advanced model AUC-ROC ≈ **0.79**

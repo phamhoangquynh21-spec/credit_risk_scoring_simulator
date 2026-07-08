@@ -95,3 +95,34 @@ def risk_score(model, X_row: pd.DataFrame) -> float:
     """Return a 0-100 risk score (probability of default * 100) for one row."""
     proba = float(model.predict_proba(X_row)[:, 1][0])
     return round(proba * 100, 1)
+
+
+def score_batch(model, feature_cols: list[str], raw_df: pd.DataFrame) -> pd.DataFrame:
+    """Score every row of an uploaded UCI-format DataFrame.
+
+    Accepts raw UCI column names (LIMIT_BAL, PAY_0, ...) or the cleaned
+    snake_case form; a target column, if present, is ignored. Returns a copy of
+    the input with ``risk_score`` (0-100) and ``risk_band`` columns appended.
+    Raises ValueError naming any missing required columns.
+    """
+    from . import config
+    from .preprocessing import clean_data, engineer_features
+
+    df = raw_df.copy()
+    df.columns = [str(c).lower() for c in df.columns]
+    required = ["limit_bal", "sex", "education", "marriage", "age",
+                *config.PAY_COLS, *config.BILL_COLS, *config.PAY_AMT_COLS]
+    missing = [c for c in required if c not in df.columns]
+    if missing:
+        raise ValueError(
+            "Missing required columns: " + ", ".join(missing)
+            + ". Download the sample template for the expected format."
+        )
+
+    df = engineer_features(clean_data(df))
+    proba = model.predict_proba(df[feature_cols])[:, 1]
+
+    out = raw_df.copy()
+    out["risk_score"] = (proba * 100).round(1)
+    out["risk_band"] = [config.risk_band(s) for s in out["risk_score"]]
+    return out

@@ -24,7 +24,8 @@ from sklearn.metrics import roc_curve
 # Support both `streamlit run src/dashboard.py` and `python -m src.dashboard`.
 try:
     from . import config, fairness
-    from .explain import explain_in_plain_language, risk_score
+    from .explain import explain_in_plain_language, risk_score, score_batch
+    from .generate_data import generate_raw
     from .preprocessing import split_data
 except ImportError:  # pragma: no cover - executed only under `streamlit run`
     import sys
@@ -32,7 +33,8 @@ except ImportError:  # pragma: no cover - executed only under `streamlit run`
 
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     from src import config, fairness
-    from src.explain import explain_in_plain_language, risk_score
+    from src.explain import explain_in_plain_language, risk_score, score_batch
+    from src.generate_data import generate_raw
     from src.preprocessing import split_data
 
 
@@ -274,7 +276,68 @@ def tab_segments(bundle):
 
 
 # ---------------------------------------------------------------------------
-# Tab 4 — Limitations & Disclaimer
+# Tab 4 — Batch Scoring (upload your own customers)
+# ---------------------------------------------------------------------------
+def tab_batch(bundle):
+    st.header("Batch Scoring — Upload Your Own Customers")
+    st.caption(
+        "Upload a CSV of real customers and score every row with the trained "
+        "model. Files are processed **in memory for this session only** — "
+        "nothing is stored on the server.")
+
+    with st.expander("Required CSV format"):
+        st.markdown(
+            "One row per customer. Columns may use raw UCI names or snake_case: "
+            "`LIMIT_BAL, SEX, EDUCATION, MARRIAGE, AGE, PAY_0, PAY_2–PAY_6, "
+            "BILL_AMT1–6, PAY_AMT1–6`. An `ID` or target column is optional "
+            "and ignored.")
+        st.download_button(
+            "Download sample CSV template",
+            generate_raw(n=20, seed=1).to_csv(index=False),
+            "sample_customers.csv", "text/csv",
+        )
+
+    uploaded = st.file_uploader("Upload customer CSV", type=["csv"])
+    if uploaded is None:
+        return
+
+    try:
+        raw = pd.read_csv(uploaded)
+        scored = score_batch(bundle["model"], bundle["features"], raw)
+    except ValueError as exc:
+        st.error(str(exc))
+        return
+    except Exception as exc:
+        st.error(f"Could not score this file: {exc}")
+        return
+
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Customers scored", f"{len(scored):,}")
+    c2.metric("Average risk score", f"{scored['risk_score'].mean():.1f}")
+    high_pct = (scored["risk_band"] == "High").mean()
+    c3.metric("High-risk share", f"{high_pct:.1%}")
+
+    hist = px.histogram(
+        scored, x="risk_score", color="risk_band", nbins=40,
+        color_discrete_map=BAND_COLOR,
+        labels={"risk_score": "Risk score (0–100)"},
+    )
+    hist.update_layout(height=320)
+    st.plotly_chart(hist, use_container_width=True)
+
+    # Show scores first, then the original columns.
+    front = ["risk_score", "risk_band"]
+    st.dataframe(scored[front + [c for c in scored.columns if c not in front]],
+                 use_container_width=True, height=350)
+    st.download_button(
+        "Download scored CSV",
+        scored.to_csv(index=False),
+        "scored_customers.csv", "text/csv", type="primary",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Tab 5 — Limitations & Disclaimer
 # ---------------------------------------------------------------------------
 def tab_limitations(bundle):
     st.header("Limitations & Disclaimer")
@@ -342,9 +405,9 @@ def main():
     bundle = load_bundle()
     metrics = load_metrics()
 
-    t1, t2, t3, t4 = st.tabs([
+    t1, t2, t3, t4, t5 = st.tabs([
         "Single Customer Prediction", "Model Performance",
-        "Segment Analysis", "Limitations & Disclaimer",
+        "Segment Analysis", "Batch Scoring (CSV)", "Limitations & Disclaimer",
     ])
     with t1:
         tab_prediction(bundle)
@@ -353,6 +416,8 @@ def main():
     with t3:
         tab_segments(bundle)
     with t4:
+        tab_batch(bundle)
+    with t5:
         tab_limitations(bundle)
 
 
