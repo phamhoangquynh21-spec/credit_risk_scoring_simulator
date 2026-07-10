@@ -33,10 +33,13 @@ def verify_token(token: str) -> tuple[str, str]:
     if user is None:
         raise AppError("unauthorized", "invalid or expired token", 401)
 
-    svc = create_client(settings.supabase_url, settings.supabase_service_role_key)
-    prof = (svc.table("profiles").select("role")
-            .eq("user_id", user.id).limit(1).execute().data)
-    role = prof[0]["role"] if prof else "analyst"
+    try:
+        svc = create_client(settings.supabase_url, settings.supabase_service_role_key)
+        prof = (svc.table("profiles").select("role")
+                .eq("user_id", user.id).limit(1).execute().data)
+        role = prof[0]["role"] if prof else "analyst"
+    except Exception:  # backend hiccup (DB down, RLS, network): fail closed
+        role = "analyst"
     return user.id, role
 
 
@@ -49,9 +52,6 @@ def get_principal(authorization: str | None = Header(default=None)) -> Principal
 
 
 def require_role(*roles: str):
-    def _dep(principal: Principal = None) -> Principal:  # replaced below
-        return principal
-    # Real dependency composed at call site:
     from fastapi import Depends
 
     def _checked(principal: Principal = Depends(get_principal)) -> Principal:
