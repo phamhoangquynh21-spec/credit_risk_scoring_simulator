@@ -30,6 +30,9 @@ def create_app() -> FastAPI:
     from .routers import models
     app.include_router(models.router)
 
+    from .routers import predict
+    app.include_router(predict.router)
+
     return app
 
 
