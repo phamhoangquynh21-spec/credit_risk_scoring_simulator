@@ -1,0 +1,5 @@
+# Platform tooling only — NOT installed by Streamlit Cloud (that uses root requirements.txt)
+supabase>=2.4
+xlrd>=2.0
+python-dotenv>=1.0
+requests>=2.31

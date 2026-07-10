@@ -24,3 +24,7 @@ Thumbs.db
 
 # Keep folder placeholders
 !**/.gitkeep
+.superpowers/
+
+# Secrets
+.env
