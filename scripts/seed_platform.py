@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import os
+import secrets
 import sys
 from pathlib import Path
 
@@ -72,6 +73,23 @@ def _create_user(email: str, name: str) -> str:
         raise
 
 
+def _create_svc_owner(password: str) -> str:
+    """Create the svc-demo-owner auth user with a random password.
+    Tolerates "already exists" the same way _create_user does."""
+    try:
+        res = sb.auth.admin.create_user({
+            "email": SVC_DEMO_OWNER_EMAIL, "password": password,
+            "email_confirm": True,
+            "user_metadata": {"display_name": SVC_DEMO_OWNER_NAME},
+        })
+        return res.user.id
+    except Exception:
+        existing = _list_existing_users()
+        if SVC_DEMO_OWNER_EMAIL in existing:
+            return existing[SVC_DEMO_OWNER_EMAIL]
+        raise
+
+
 def ensure_demo_users() -> dict[str, str]:
     existing = _list_existing_users()
     ids = {}
@@ -89,12 +107,23 @@ def ensure_demo_users() -> dict[str, str]:
 
 def ensure_svc_demo_owner() -> str:
     """Create (or find) the non-login service account that owns the demo
-    portfolio. Never added to DEMO_USERS."""
+    portfolio. Never added to DEMO_USERS.
+
+    Must never share DEMO_PASSWORD: that password is public, and anyone who
+    could log in as this account could delete the public demo portfolio
+    (pf_delete_own has no is_demo guard). So this account always gets a
+    fresh random password that is immediately discarded - no human needs it,
+    since the account is only ever used as an owner_id, never logged into.
+    """
     existing = _list_existing_users()
+    random_password = secrets.token_urlsafe(32)
     if SVC_DEMO_OWNER_EMAIL in existing:
         owner_id = existing[SVC_DEMO_OWNER_EMAIL]
+        # Existing account may have been created with DEMO_PASSWORD by an
+        # older version of this script - reset it to invalidate that leak.
+        sb.auth.admin.update_user_by_id(owner_id, {"password": random_password})
     else:
-        owner_id = _create_user(SVC_DEMO_OWNER_EMAIL, SVC_DEMO_OWNER_NAME)
+        owner_id = _create_svc_owner(random_password)
     sb.table("profiles").update(
         {"display_name": SVC_DEMO_OWNER_NAME}
     ).eq("user_id", owner_id).execute()
