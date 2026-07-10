@@ -27,6 +27,9 @@ def create_app() -> FastAPI:
             "supabase_configured": settings.configured,
         }
 
+    from .routers import models
+    app.include_router(models.router)
+
     return app
 
 
