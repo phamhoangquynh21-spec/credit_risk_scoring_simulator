@@ -27,6 +27,7 @@ def test_save_prediction_roundtrip():
         {"email": email, "password": f"Pw!{uuid.uuid4().hex}",
          "email_confirm": True})
     uid = u.user.id
+    pid = None
     try:
         scored = {"probability": 0.8, "risk_score": 80.0, "risk_band": "High"}
         factors = [{"feature": "pay_0", "friendly": "Most recent repayment status",
@@ -41,4 +42,8 @@ def test_save_prediction_roundtrip():
                .eq("prediction_id", pid).execute().data)
         assert exp[0]["top_factors"][0]["feature"] == "pay_0"
     finally:
-        svc.auth.admin.delete_user(uid)  # cascades cleanup where applicable
+        # predictions.created_by is ON DELETE SET NULL (not cascade), so the
+        # prediction row must be deleted explicitly or it orphans in the live DB.
+        if pid:
+            svc.table("predictions").delete().eq("id", pid).execute()  # prediction_explanations cascades
+        svc.auth.admin.delete_user(uid)

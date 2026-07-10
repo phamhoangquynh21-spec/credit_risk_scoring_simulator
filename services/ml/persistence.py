@@ -15,6 +15,8 @@ def service_client():
     return create_client(settings.supabase_url, settings.supabase_service_role_key)
 
 
+# Cached for the process lifetime: promoting a new champion in the DB requires
+# a service restart to take effect in R1 (no runtime cache-bust path yet).
 @functools.lru_cache(maxsize=1)
 def get_champion() -> dict:
     rows = (service_client().table("model_versions")
