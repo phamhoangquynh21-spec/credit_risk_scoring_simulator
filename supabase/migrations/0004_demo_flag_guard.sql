@@ -1,4 +1,4 @@
--- 0002_1_demo_flag_guard.sql
+-- 0004_demo_flag_guard.sql
 -- Security fix: clients may never set is_demo; demo portfolios are seeded
 -- exclusively via the service role (which bypasses RLS).
 alter policy "pf_insert_own" on public.portfolios

@@ -1,4 +1,4 @@
--- 0003_1_tighten_write_policies.sql
+-- 0005_tighten_write_policies.sql
 -- Security fixes for write-side RLS holes found in review of 0003.
 
 -- FIX 1 (Critical): api_keys — clients could self-escalate `scopes` via INSERT/UPDATE.
