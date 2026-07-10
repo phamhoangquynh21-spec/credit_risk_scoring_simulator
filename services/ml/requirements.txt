@@ -1,0 +1,6 @@
+# ML service (installed on top of the project's root requirements.txt)
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pydantic>=2.6
+pydantic-settings>=2.2
+httpx>=0.27
