@@ -132,19 +132,26 @@ def test_user_cannot_forge_prediction_in_another_users_portfolio(clients):
 
     # Tightening must not over-block: an ad-hoc (portfolio-less) prediction
     # owned by the caller should still succeed.
-    adhoc = user_b.table("predictions").insert(
-        _base_row(None, f"adhoc-{uuid.uuid4().hex}")).execute().data
-    assert len(adhoc) == 1
-    # predictions.created_by has no ON DELETE CASCADE (unlike portfolios),
-    # so clean this row up via the service role or the fixture's teardown
-    # (deleting the auth user) would fail with an FK restrict violation.
-    admin.table("predictions").delete().eq("id", adhoc[0]["id"]).execute()
+    # predictions.created_by has no ON DELETE CASCADE (unlike portfolios), so
+    # this row must always be cleaned up via the service role — even if the
+    # assertion below fails — or the fixture's teardown (deleting the auth
+    # user) would fail with an FK restrict violation and leak the user.
+    adhoc_id = None
+    try:
+        adhoc = user_b.table("predictions").insert(
+            _base_row(None, f"adhoc-{uuid.uuid4().hex}")).execute().data
+        if adhoc:
+            adhoc_id = adhoc[0]["id"]
+        assert len(adhoc) == 1
+    finally:
+        if adhoc_id is not None:
+            admin.table("predictions").delete().eq("id", adhoc_id).execute()
 
 
 def test_client_cannot_write_api_keys(clients):
     # 0003_1 FIX 1: keys_insert_own / keys_update_own were dropped — clients
     # could previously self-escalate `scopes` via a direct insert/update.
-    _, user_a, _ = clients
+    admin, user_a, _ = clients
     uid = user_a.auth.get_user().user.id
     inserted = None
     try:
@@ -154,6 +161,32 @@ def test_client_cannot_write_api_keys(clients):
     except Exception:
         inserted = None
     assert not inserted
+
+    # Also confirm UPDATE is denied. Insert a row via the service-role admin
+    # client (clients cannot insert, per above), then attempt a client-side
+    # update and confirm — via a service-role read — that it did not take
+    # effect. PostgREST under RLS can either raise on the UPDATE or silently
+    # affect zero rows, so both outcomes are accepted here.
+    key_id = None
+    try:
+        seeded = admin.table("api_keys").insert(
+            {"user_id": uid, "key_hash": "seed-hash", "scopes": ["read:only"]}
+        ).execute().data
+        key_id = seeded[0]["id"]
+
+        update_raised = False
+        try:
+            user_a.table("api_keys").update(
+                {"scopes": ["admin:*"]}).eq("id", key_id).execute()
+        except Exception:
+            update_raised = True
+
+        after = admin.table("api_keys").select("scopes").eq(
+            "id", key_id).execute().data
+        assert update_raised or after[0]["scopes"] == ["read:only"]
+    finally:
+        if key_id is not None:
+            admin.table("api_keys").delete().eq("id", key_id).execute()
 
 
 def test_client_cannot_delete_demo_portfolio(clients):
