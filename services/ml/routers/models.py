@@ -3,9 +3,10 @@ from __future__ import annotations
 
 import json
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from src import config
+from ..auth import Principal, get_principal
 from ..persistence import get_champion
 from ..scoring import load_bundle
 
@@ -13,7 +14,7 @@ router = APIRouter(prefix="/api/v1/models", tags=["models"])
 
 
 @router.get("/current")
-def current_model() -> dict:
+def current_model(principal: Principal = Depends(get_principal)) -> dict:
     champ = get_champion()
     bundle = load_bundle()
     metrics = json.loads(config.METRICS_PATH.read_text())["advanced"]
