@@ -1,7 +1,7 @@
 """POST /api/v1/predict — score one applicant and persist it."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Header
+from fastapi import APIRouter, Depends, Header, Response
 
 from ..auth import Principal, get_principal
 from ..logging_config import input_hash
@@ -28,6 +28,7 @@ def predict(applicant: Applicant,
 @router.post("/predict/batch", response_model=BatchPredictResponse)
 def predict_batch(
     req: BatchPredictRequest,
+    response: Response,
     principal: Principal = Depends(get_principal),
     idempotency_key: str | None = Header(default=None),
 ) -> BatchPredictResponse:
@@ -47,5 +48,7 @@ def predict_batch(
             risk_score=scored["risk_score"], risk_band=scored["risk_band"],
             probability=scored["probability"], model_version=version,
             prediction_id=pid))
+    if idempotency_key is not None:
+        response.headers["Idempotency-Key"] = idempotency_key
     return BatchPredictResponse(model_version=version, count=len(results),
                                 results=results)

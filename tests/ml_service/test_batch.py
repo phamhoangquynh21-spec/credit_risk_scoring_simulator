@@ -51,3 +51,20 @@ def test_batch_idempotent_reuses_existing(monkeypatch):
     assert r.status_code == 200
     assert r.json()["results"][0]["prediction_id"] == "pred-existing"
     assert saved == []                        # no new insert for the existing row
+
+
+def test_batch_echoes_idempotency_key_header(monkeypatch):
+    c, saved = _client(monkeypatch)
+    r = c.post("/api/v1/predict/batch",
+               json={"applicants": [_applicant(30)]},
+               headers={"Idempotency-Key": "my-key-123"})
+    assert r.status_code == 200
+    assert r.headers["Idempotency-Key"] == "my-key-123"
+
+
+def test_batch_without_idempotency_key_has_no_header(monkeypatch):
+    c, saved = _client(monkeypatch)
+    r = c.post("/api/v1/predict/batch",
+               json={"applicants": [_applicant(30)]})
+    assert r.status_code == 200
+    assert "Idempotency-Key" not in r.headers
