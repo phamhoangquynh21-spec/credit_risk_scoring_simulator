@@ -21,7 +21,7 @@ export function ApplicantForm() {
         fetch("/api/explain", { method: "POST", body: JSON.stringify(a) }).then(r => r.json()),
       ]);
       if (p.error) throw new Error(p.error);
-      setResult({ score: p.risk_score, version: p.model_version ?? "—", factors: (e.factors ?? []).slice(0, 5) });
+      setResult({ score: p.risk_score, version: p.model_version ?? "—", factors: (e.top_factors ?? e.factors ?? []).slice(0, 5) });
     } catch (err) { setError((err as Error).message); }
     finally { setLoading(false); }
   }

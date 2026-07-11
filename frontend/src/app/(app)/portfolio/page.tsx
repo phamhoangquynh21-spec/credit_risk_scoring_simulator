@@ -10,7 +10,7 @@ export default async function PortfolioPage() {
   const feats = (rows ?? []).map((r) => r.features as Record<string, number>);
   const total = feats.length;
   const defaults = feats.filter((f) => f["default.payment.next.month"] === 1).length;
-  const byEdu = groupRate(feats, "education");
+  const byEdu = groupRate(feats, (f) => eduLabel(f["education"]));
   return (
     <div className="space-y-6">
       <div>
@@ -30,8 +30,8 @@ export default async function PortfolioPage() {
         <table className="text-sm">
           <thead><tr><th className="p-2 text-left">Education</th><th className="p-2 text-right">Default rate</th></tr></thead>
           <tbody>
-            {Object.entries(byEdu).map(([k, v]) => (
-              <tr key={k}><td className="p-2">{eduLabel(Number(k))}</td>
+            {Object.entries(byEdu).map(([label, v]) => (
+              <tr key={label}><td className="p-2">{label}</td>
                 <td className="p-2 text-right tabular-nums">{(v * 100).toFixed(1)}%</td></tr>
             ))}
           </tbody>
@@ -41,10 +41,10 @@ export default async function PortfolioPage() {
   );
 }
 
-function groupRate(rows: Record<string, number>[], key: string) {
+function groupRate(rows: Record<string, number>[], keyFn: (r: Record<string, number>) => string) {
   const agg: Record<string, { n: number; d: number }> = {};
   for (const r of rows) {
-    const g = String(r[key]);
+    const g = keyFn(r);
     agg[g] ??= { n: 0, d: 0 };
     agg[g].n++; if (r["default.payment.next.month"] === 1) agg[g].d++;
   }
