@@ -1,0 +1,26 @@
+# Render Blueprint — FastAPI ML service (Plan 2).
+# Deploy: Render Dashboard → New → Blueprint → connect this repo → pick a branch
+# that contains services/ml/ (feat/r1-plan2-ml-service, or main after the stack
+# merges). Render reads this file, builds the Docker image, and prompts for the
+# three secret env vars below (sync:false = you paste them in the dashboard).
+#
+# dockerCommand overrides the Dockerfile's hardcoded port so the service binds
+# Render's injected $PORT. The image bundles models/model.pkl (committed) so no
+# training happens at runtime.
+services:
+  - type: web
+    name: credit-risk-ml
+    runtime: docker
+    dockerfilePath: ./services/ml/Dockerfile
+    dockerContext: .
+    dockerCommand: uvicorn services.ml.main:app --host 0.0.0.0 --port $PORT
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: false
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
