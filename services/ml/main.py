@@ -33,6 +33,9 @@ def create_app() -> FastAPI:
     from .routers import predict
     app.include_router(predict.router)
 
+    from .routers import explain
+    app.include_router(explain.router)
+
     return app
 
 
