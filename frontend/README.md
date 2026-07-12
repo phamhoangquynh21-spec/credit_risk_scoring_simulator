@@ -4,6 +4,9 @@ Next.js (App Router) frontend for the Credit Risk Scoring Simulator: auth, singl
 scoring (Section 2), portfolio monitoring (Section 3), and model performance (Section 6),
 backed by Supabase (auth + data) and the FastAPI ML service (scoring).
 
+**Live:** deployed on Vercel (Root Directory = `frontend`). The ML service runs on Render
+(`https://credit-risk-ml-vmp3.onrender.com`) and is wired in via the `ML_SERVICE_URL` env var.
+
 ## Prerequisites
 
 - **Node.js 20+**, portable install on this machine (not on PATH). Before any `npm`/`npx`
