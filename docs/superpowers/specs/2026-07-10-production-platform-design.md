@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-10
 **Status:** Approved design (Parts 1–3 approved in session); pending user review of this written spec
-**Supersedes nothing** — implements the vision of `docs/NextGen_Architecture_Roadmap.md` via Approach A (Supabase-centric). The Streamlit app remains the internal prototype throughout.
+**Supersedes nothing** — implements the vision of the former `docs/NextGen_Architecture_Roadmap.md` (now consolidated into `docs/ARCHITECTURE.md`) via Approach A (Supabase-centric). The Streamlit app remains the internal prototype throughout.
 
 ---
 

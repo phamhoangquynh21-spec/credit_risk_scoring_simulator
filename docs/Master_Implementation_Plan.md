@@ -2,7 +2,9 @@
 
 **Project:** `credit_risk_scoring_simulator`
 **Document type:** Execution playbook (sequenced steps, connectors, prerequisites)
-**Companion to:** [`NextGen_Architecture_Roadmap.md`](NextGen_Architecture_Roadmap.md) (the architecture), [`PROJECT_GUIDE.md`](PROJECT_GUIDE.md) (the current system)
+**Companion to:** [`ARCHITECTURE.md`](ARCHITECTURE.md) (the architecture — single source of truth; consolidates the former NextGen roadmap), [`PROJECT_GUIDE.md`](PROJECT_GUIDE.md) (the current system)
+
+> **Note on cross-references:** prose references below to "the roadmap §N" point to the structure of the former `NextGen_Architecture_Roadmap.md`, now consolidated into [`ARCHITECTURE.md`](ARCHITECTURE.md) (limitation matrix → §9, data model → §5, connectors → §8).
 **Rule inherited from the roadmap:** the current MVP keeps working at every step; nothing is rewritten wholesale.
 
 > **Honesty note (read first).** Every limitation below has a concrete removal path. Most are removed by engineering work in this plan. A few are removed only by **external actions** — signed data licenses, commercial bureau contracts, legal/compliance review, and budget. Those are marked **[EXTERNAL GATE]**: the engineering to support them is in this plan, but the gate itself is a business action no code can bypass. A plan that claimed otherwise would be lying to you.

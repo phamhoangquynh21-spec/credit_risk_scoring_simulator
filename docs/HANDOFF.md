@@ -181,7 +181,7 @@ Runbooks: `docs/runbooks/frontend-deploy.md`, `docs/runbooks/ml-service-deploy.m
 | Doc | What it is |
 |---|---|
 | `docs/PROJECT_GUIDE.md` | Multi-level explainer of the whole MVP (study guide + reference + per-file internals) |
-| `docs/NextGen_Architecture_Roadmap.md` | The production-platform architecture & 8-phase roadmap |
+| `docs/ARCHITECTURE.md` | Single source of truth for architecture (live stack + forward roadmap); supersedes the old NextGen roadmap |
 | `docs/Master_Implementation_Plan.md` | Limitation-by-limitation removal plan |
 | `docs/superpowers/specs/2026-07-10-production-platform-design.md` | The approved platform design (Approach A) |
 | `docs/superpowers/plans/2026-07-11-r1-plan*.md` | The three R1 implementation plans (executed) |
