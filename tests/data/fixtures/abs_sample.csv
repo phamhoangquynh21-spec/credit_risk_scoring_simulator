@@ -1,0 +1,5 @@
+DATAFLOW,MEASURE,SEX,AGE,TIME_PERIOD,OBS_VALUE
+ABS:LF,Unemployment rate,Male,15-24,2026-02,9.1
+ABS:LF,Unemployment rate,Female,15-24,2026-02,8.4
+ABS:LF,Unemployment rate,Male,15-24,2026-03,9.3
+ABS:LF,Unemployment rate,Female,15-24,2026-03,8.6

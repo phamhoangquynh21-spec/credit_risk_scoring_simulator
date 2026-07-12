@@ -1,5 +1,33 @@
 # Changelog
 
+## Stage 6 — data connectors (2026-07-12)
+
+Added `src/data/`, an additive data layer that never touches `models/` or the
+training path. `base.py` defines the `DataSource` ABC plus `RAW_COLUMNS` (the
+raw UCI uppercase schema) and `validate_raw_schema`, so every source feeds the
+existing `src.preprocessing` chain unchanged. `sources.py` ships
+`SyntheticSource` (wraps `generate_raw`) and `CsvSource` (reads any raw-UCI CSV,
+including the committed real-UCI file, with a helpful error on column mismatch).
+Macro connectors `connectors/{rba,abs,apra}.py` each expose
+`parse(path_or_bytes) -> list[dict]`, `fetch()` (live download; RBA/APRA keyless,
+ABS requires `ABS_API_KEY`) and `ingest(path_or_bytes=None, client=None)` which
+upserts to `macro_indicators` via `src.db.upsert_indicators`; ABS `fetch`/`ingest`
+without a key fail loudly naming the var. `connectors/hmda.py` normalises an HMDA
+LAR sample to demographic + binary-outcome columns for the (Stage 7) fairness
+pipeline. `connectors/gated.py` builds `FreddieMacSource`, `BureauSource`,
+`OpenBankingSource` on the `DataSource` interface but **shipped disabled**: each
+`load()` checks `src.db.is_enabled(<flag>)` (keys `freddie_enabled`,
+`bureau_enabled`, `openbanking_enabled` — all default OFF) then the required env
+creds, raising a clear message naming the flag + external approval (license
+verification / commercial contract + legal approval / CDR accreditation) or the
+missing credential. `requests` is imported lazily inside `fetch()` only, so
+`import src.data` stays cheap. Documented in `docs/data_sources.md`. Real-data
+robustness: ABS composes `indicator` from MEASURE plus every dimension column so
+multi-dimensional SDMX series don't collide on the `macro_indicators` PK; macro
+value parsing tolerates thousands separators and skips non-numeric/descriptive
+cells; the HMDA loader survives NA `action_taken` rows. Covered by 33 offline
+tests (committed fixtures + fake `src.db` client, no network/DB).
+
 ## Stage 3 — governed ML lifecycle (2026-07-12)
 
 Added `src/ml/`, a set of governed-lifecycle helpers with all optional/heavy
