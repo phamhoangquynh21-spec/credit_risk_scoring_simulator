@@ -245,10 +245,8 @@ Every tracked file, its location, its job, and what is *inside* it.
 | File | What it is / what's inside |
 |---|---|
 | [`README.md`](../README.md) | Front page: highlights, data note, quickstart, structure, limitations, live link. |
-| [`PRD.md`](../PRD.md) | Product Requirements Doc: vision, personas, 5 user stories + acceptance criteria, scope, risks, Definition of Done. |
-| [`Technical_Spec.md`](../Technical_Spec.md) | Technical spec: tech stack, repo structure, data schema, **function-level signatures** for every module, testing & deployment plan. |
-| [`DEPLOY.md`](../DEPLOY.md) | Step-by-step Streamlit Cloud deployment guide. |
-| [`Credit_Risk_Scoring_Simulator_PreCoding_Plan.md`](../Credit_Risk_Scoring_Simulator_PreCoding_Plan.md) | The original (Vietnamese) 11-step planning document behind the whole project. |
+| [`PRD.md`](PRD.md) | Product Requirements Doc: vision, personas, 5 user stories + acceptance criteria, scope, risks, Definition of Done. |
+| [`Technical_Spec.md`](Technical_Spec.md) | Technical spec: tech stack, repo structure, data schema, **function-level signatures** for every module, testing & deployment plan. |
 | [`requirements.txt`](../requirements.txt) | Pinned Python dependencies. |
 | [`pytest.ini`](../pytest.ini) | pytest config: `pythonpath=.`, `testpaths=tests`, verbose. |
 | [`.gitignore`](../.gitignore) | Excludes `.venv/`, `models/*.pkl`, `data/processed/*.csv`, caches. |
@@ -451,4 +449,4 @@ python -m src.generate_data
 
 ---
 
-*This guide is a companion to [`README.md`](../README.md), [`PRD.md`](../PRD.md), and [`Technical_Spec.md`](../Technical_Spec.md). Numbers reflect the model trained with `random_state=42`; retraining reproduces them.*
+*This guide is a companion to [`README.md`](../README.md), [`PRD.md`](PRD.md), and [`Technical_Spec.md`](Technical_Spec.md). Numbers reflect the model trained with `random_state=42`; retraining reproduces them.*
