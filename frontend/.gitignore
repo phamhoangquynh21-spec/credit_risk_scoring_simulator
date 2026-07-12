@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Public Supabase config (anon key is public by design) — needed at build time
+!.env.production
