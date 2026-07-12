@@ -58,7 +58,10 @@ def _build_contract() -> list[FeatureSpec]:
     specs += [
         FeatureSpec("avg_bill_amt", "float", min=-_AMOUNT_MAX, max=_AMOUNT_MAX),
         FeatureSpec("avg_pay_amt", "float", min=0.0, max=_AMOUNT_MAX),
-        FeatureSpec("credit_utilization", "float", min=0.0, max=10.0),
+        # Utilisation = avg_bill_amt / limit_bal; a legitimate overpayer has a
+        # negative average bill and thus negative utilisation, so the floor is
+        # symmetric with the +10 ceiling (consistent with allowing negative bills).
+        FeatureSpec("credit_utilization", "float", min=-10.0, max=10.0),
         FeatureSpec("months_delayed_count", "int", min=0, max=len(config.PAY_COLS)),
         FeatureSpec("payment_trend", "float", min=-_AMOUNT_MAX, max=_AMOUNT_MAX),
     ]
@@ -91,7 +94,9 @@ def validate_frame(df) -> None:
         if spec.name not in df.columns:
             continue
         col = df[spec.name]
-        if not pd.api.types.is_numeric_dtype(col):
+        # bool is numeric to pandas but not a valid feature value (matches
+        # validate_row, which rejects Python bools).
+        if pd.api.types.is_bool_dtype(col) or not pd.api.types.is_numeric_dtype(col):
             problems.append(f"{spec.name}: not numeric (dtype {col.dtype})")
             continue
         if col.isna().any():

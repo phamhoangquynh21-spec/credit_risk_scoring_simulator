@@ -85,3 +85,24 @@ def test_boolean_is_not_accepted_as_number():
     row["marriage"] = True  # bool must not pass as an int category
     with pytest.raises(FeatureContractError, match="marriage: not a number"):
         fc.validate_row(row)
+
+
+def test_boolean_column_rejected_by_validate_frame():
+    # bool is numeric to pandas but invalid; validate_frame must agree with
+    # validate_row and reject it.
+    frame = pd.DataFrame([_valid_row()])
+    frame["months_delayed_count"] = pd.Series([True], dtype=bool)
+    with pytest.raises(FeatureContractError, match="months_delayed_count: not numeric"):
+        fc.validate_frame(frame)
+
+
+def test_overpayer_negative_utilization_passes():
+    # A legitimate overpayer has a negative average bill, hence negative
+    # utilisation (avg_bill_amt / limit_bal). Must NOT be falsely rejected.
+    row = _valid_row()
+    row["avg_bill_amt"] = -8000.0
+    row["credit_utilization"] = -8000.0 / 50000.0  # ~= -0.16
+    row["limit_bal"] = 50000.0
+    row.update({c: -8000.0 for c in fc.config.BILL_COLS})
+    fc.validate_row(row)
+    fc.validate_frame(pd.DataFrame([row]))

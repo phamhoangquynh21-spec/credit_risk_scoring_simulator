@@ -14,7 +14,8 @@ from `config`) with `validate_frame`/`validate_row` raising `FeatureContractErro
 `calibration.py` wraps a prefit estimator in `CalibratedClassifierCV` (isotonic,
 Platt fallback under 1000 samples) without touching `model.pkl`, plus Brier and
 a saved reliability curve. `threshold.py` replaces the fixed 0.5 with a
-cost-sensitive optimiser (`FN_COST=5`, `FP_COST=1`) and `persist_threshold`.
+cost-sensitive optimiser (`FN_COST=5`, `FP_COST=1`); the chosen threshold is
+persisted through the governed registration path (`register_from_training`).
 `reason_codes.py` maps SHAP top factors to analyst-ready reason codes and always
 appends the non-causal `CONTRIBUTION_DISCLAIMER`. The new `mlflow` dependency
 lives only in `requirements-train.txt`. Covered by 20 offline unit tests

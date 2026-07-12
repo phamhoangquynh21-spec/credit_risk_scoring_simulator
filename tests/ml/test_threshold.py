@@ -7,39 +7,6 @@ import pytest
 from src.ml import threshold
 
 
-class _Result:
-    def __init__(self, data):
-        self.data = data
-
-
-class _FakeQuery:
-    def __init__(self, client, table):
-        self._client = client
-        self.table = table
-        self.ops = []
-
-    def __getattr__(self, name):
-        def op(*args, **kwargs):
-            self.ops.append((name, args, kwargs))
-            return self
-        return op
-
-    def execute(self):
-        self._client.calls.append(self)
-        return _Result([{"semver": "1.4.0", "threshold": 0.3}])
-
-    def arg(self, method):
-        return next(a[0] for n, a, _ in self.ops if n == method)
-
-
-class FakeClient:
-    def __init__(self):
-        self.calls = []
-
-    def table(self, name):
-        return _FakeQuery(self, name)
-
-
 @pytest.fixture
 def imbalanced_scores():
     """Imbalanced synthetic set (~15% positives) with a usable probability signal."""
@@ -66,14 +33,3 @@ def test_equal_costs_threshold_not_forced_low(imbalanced_scores):
     t_fn = threshold.optimize_threshold(y, proba, fn_cost=5, fp_cost=1)
     # Heavier FN penalty never raises the threshold above the equal-cost choice.
     assert t_fn <= t_equal
-
-
-def test_persist_threshold_updates_model_version():
-    fake = FakeClient()
-    row = threshold.persist_threshold("1.4.0", 0.3, client=fake)
-
-    call = fake.calls[0]
-    assert call.table == "model_versions"
-    assert call.arg("update") == {"threshold": 0.3}
-    assert ("eq", ("semver", "1.4.0"), {}) in call.ops
-    assert row["semver"] == "1.4.0"

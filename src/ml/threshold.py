@@ -33,17 +33,3 @@ def optimize_threshold(y_true, y_proba, fn_cost=FN_COST, fp_cost=FP_COST,
         if cost < best_cost:
             best_cost, best_t = cost, float(t)
     return best_t
-
-
-def persist_threshold(semver, threshold, client=None) -> dict:
-    """Persist ``threshold`` onto the given model version via the src.db client.
-
-    Uses the src.db service-role client (or an injected fake in tests) to update
-    ``model_versions.threshold`` for ``semver``. Returns the updated row.
-    """
-    from .. import db
-
-    client = client or db.get_service_client()
-    return (client.table("model_versions")
-            .update({"threshold": float(threshold)})
-            .eq("semver", semver).execute().data[0])

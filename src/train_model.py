@@ -190,7 +190,7 @@ def run_training() -> dict:
             artifact_path=str(config.MODEL_PATH),
         )
         print(f"MLflow run_id: {run_id}")
-    except Exception as exc:  # pragma: no cover - exercised only when mlflow present
+    except Exception as exc:  # pragma: no cover - fires when mlflow is absent (MVP path)
         print(f"MLflow logging skipped: {exc}")
 
     print(f"\nBaseline  AUC-ROC: {baseline_metrics['auc_roc']:.4f}")
