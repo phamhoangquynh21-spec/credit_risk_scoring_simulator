@@ -171,6 +171,28 @@ def run_training() -> dict:
     with open(config.METRICS_PATH, "w") as fh:
         json.dump(metrics, fh, indent=2)
 
+    # Optional MLflow logging (Stage 3.1). Best-effort: a missing mlflow or any
+    # logging failure must never break training — the MVP still trains without
+    # it. Does not change this function's return value or existing prints.
+    try:
+        from .ml import registry
+
+        run_id = registry.log_training_run(
+            params={
+                "model_type": bundle["model_type"],
+                "n_train": len(X_train),
+                "n_test": len(X_test),
+                **{f"cv_{k}": v for k, v in
+                   getattr(advanced, "cv_best_params_", {}).items()},
+            },
+            metrics={k: v for k, v in advanced_metrics.items()
+                     if isinstance(v, (int, float))},
+            artifact_path=str(config.MODEL_PATH),
+        )
+        print(f"MLflow run_id: {run_id}")
+    except Exception as exc:  # pragma: no cover - fires when mlflow is absent (MVP path)
+        print(f"MLflow logging skipped: {exc}")
+
     print(f"\nBaseline  AUC-ROC: {baseline_metrics['auc_roc']:.4f}")
     print(f"Advanced  AUC-ROC: {advanced_metrics['auc_roc']:.4f}  "
           f"({bundle['model_type']})")
