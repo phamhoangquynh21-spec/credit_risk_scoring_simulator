@@ -15,7 +15,7 @@ import os
 import pandas as pd
 
 from ...db import upsert_indicators
-from . import to_iso_period
+from . import to_float, to_iso_period
 
 SOURCE = "ABS"
 API_KEY_ENV = "ABS_API_KEY"
@@ -37,20 +37,34 @@ def _require_key() -> str:
 
 
 def parse(path_or_bytes) -> list[dict]:
-    """Parse an ABS SDMX-CSV file into macro_indicators rows (no key needed)."""
+    """Parse an ABS SDMX-CSV file into macro_indicators rows (no key needed).
+
+    ABS series are multi-dimensional: the same MEASURE at the same TIME_PERIOD
+    can appear for many SEX/AGE/REGION groups. To avoid collapsing distinct
+    series onto one (source, indicator, period) key (which would silently drop
+    rows), ``indicator`` is a composite of MEASURE plus every other dimension
+    column's value.
+    """
     buf = io.BytesIO(path_or_bytes) if isinstance(path_or_bytes, (bytes, bytearray)) else path_or_bytes
-    df = pd.read_csv(buf)
+    df = pd.read_csv(buf, dtype=str)
     for col in (MEASURE_COL, PERIOD_COL, VALUE_COL):
         if col not in df.columns:
             raise ValueError(f"ABS: expected column '{col}', got {list(df.columns)}")
 
+    # Dimension columns = everything except the period and observation value.
+    # MEASURE leads the composite key; remaining dimensions follow in column order.
+    dim_cols = [MEASURE_COL] + [c for c in df.columns
+                                if c not in (MEASURE_COL, PERIOD_COL, VALUE_COL)]
+
     rows: list[dict] = []
     for _, r in df.iterrows():
-        if pd.isna(r[VALUE_COL]):
+        value = to_float(r[VALUE_COL])
+        if value is None:
             continue
-        rows.append({"source": SOURCE, "indicator": str(r[MEASURE_COL]),
+        indicator = ".".join(str(r[c]) for c in dim_cols)
+        rows.append({"source": SOURCE, "indicator": indicator,
                      "period": to_iso_period(r[PERIOD_COL]),
-                     "value": float(r[VALUE_COL])})
+                     "value": value})
     return rows
 
 

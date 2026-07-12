@@ -1,9 +1,12 @@
-"""DataSource interface + the raw UCI schema every credit source must emit.
+"""DataSource interface + the raw UCI schema for the training-data sources.
 
-A ``DataSource`` yields a frame in the *original* UCI raw format (uppercase
-columns, dotted target) so the existing ``src.preprocessing.clean_data`` chain
-consumes it unchanged — synthetic, real-UCI CSV, or a gated feed all look
-identical downstream.
+The training-data sources (``SyntheticSource``, ``CsvSource`` / real UCI) yield a
+frame in the *original* UCI raw format (uppercase columns, dotted target) so the
+existing ``src.preprocessing.clean_data`` chain consumes it unchanged; use
+``validate_raw_schema`` to enforce that. Gated/external sources
+(bureau, open-banking) return their **provider-native** extract as-is — they are
+not coerced into ``RAW_COLUMNS`` (the schema differs per provider and is
+documented per connector in ``docs/data_sources.md``).
 """
 from __future__ import annotations
 
@@ -31,7 +34,11 @@ class DataSource(ABC):
 
     @abstractmethod
     def load(self) -> pd.DataFrame:
-        """Return a DataFrame with exactly ``RAW_COLUMNS`` (raw UCI format)."""
+        """Return the source frame.
+
+        Training-data sources return the raw UCI schema (``RAW_COLUMNS``);
+        gated/external sources return their provider-native columns.
+        """
 
 
 def validate_raw_schema(df: pd.DataFrame, origin: str) -> pd.DataFrame:

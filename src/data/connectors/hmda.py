@@ -41,7 +41,9 @@ def load(path: str | Path) -> pd.DataFrame:
     out["action_taken"] = pd.to_numeric(out["action_taken"], errors="coerce").astype("Int64")
     out["loan_amount"] = pd.to_numeric(out["loan_amount"], errors="coerce")
     out["income"] = pd.to_numeric(out["income"], errors="coerce")
-    # Binary outcomes for fairness comparison.
-    out["originated"] = (out["action_taken"] == _ORIGINATED).astype(int)
-    out["denied"] = (out["action_taken"] == _DENIED).astype(int)
+    # Binary outcomes for fairness comparison. fillna(False) keeps a row with a
+    # missing action_taken (NA on the nullable Int64 column) from aborting the
+    # whole load; such rows map to 0 on both outcomes.
+    out["originated"] = out["action_taken"].eq(_ORIGINATED).fillna(False).astype(int)
+    out["denied"] = out["action_taken"].eq(_DENIED).fillna(False).astype(int)
     return out

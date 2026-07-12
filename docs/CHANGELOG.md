@@ -21,8 +21,12 @@ pipeline. `connectors/gated.py` builds `FreddieMacSource`, `BureauSource`,
 creds, raising a clear message naming the flag + external approval (license
 verification / commercial contract + legal approval / CDR accreditation) or the
 missing credential. `requests` is imported lazily inside `fetch()` only, so
-`import src.data` stays cheap. Documented in `docs/data_sources.md`. Covered by
-30 offline tests (committed fixtures + fake `src.db` client, no network/DB).
+`import src.data` stays cheap. Documented in `docs/data_sources.md`. Real-data
+robustness: ABS composes `indicator` from MEASURE plus every dimension column so
+multi-dimensional SDMX series don't collide on the `macro_indicators` PK; macro
+value parsing tolerates thousands separators and skips non-numeric/descriptive
+cells; the HMDA loader survives NA `action_taken` rows. Covered by 33 offline
+tests (committed fixtures + fake `src.db` client, no network/DB).
 
 ## Stage 3 — governed ML lifecycle (2026-07-12)
 

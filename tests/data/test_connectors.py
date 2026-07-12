@@ -38,9 +38,19 @@ def test_rba_ingest_upserts_parsed_rows():
 
 def test_apra_parse_melts_indicator_columns():
     rows = apra.parse(FIXTURES / "apra_sample.csv")
+    assert {"source": "APRA", "indicator": "household_deposits_total",
+            "period": "2026-02-01", "value": 1523400.0} in rows
+    # 2 periods x 2 numeric indicators; the descriptive institution_type column
+    # is non-numeric and skipped, not crashed on.
+    assert len(rows) == 4
+    assert not any(r["indicator"] == "institution_type" for r in rows)
+
+
+def test_apra_parse_handles_thousands_separator():
+    rows = apra.parse(FIXTURES / "apra_sample.csv")
+    # "1,234.5" in the fixture must parse to 1234.5, not abort ingest.
     assert {"source": "APRA", "indicator": "housing_loans_total",
-            "period": "2026-02-01", "value": 2145300.0} in rows
-    assert len(rows) == 4  # 2 periods x 2 indicators
+            "period": "2026-02-01", "value": 1234.5} in rows
 
 
 def test_apra_ingest_upserts():
@@ -54,12 +64,22 @@ def test_apra_ingest_upserts():
 
 def test_abs_parse_reads_sdmx_csv():
     rows = abs_.parse(FIXTURES / "abs_sample.csv")
-    assert rows == [
-        {"source": "ABS", "indicator": "Unemployment rate",
-         "period": "2026-02-01", "value": 4.1},
-        {"source": "ABS", "indicator": "Unemployment rate",
-         "period": "2026-03-01", "value": 4.2},
-    ]
+    assert all(r["source"] == "ABS" for r in rows)
+    # indicator composes MEASURE + every other dimension (DATAFLOW, SEX, AGE).
+    assert {"source": "ABS", "indicator": "Unemployment rate.ABS:LF.Male.15-24",
+            "period": "2026-02-01", "value": 9.1} in rows
+    assert len(rows) == 4  # 2 groups x 2 periods
+
+
+def test_abs_parse_multidimensional_series_do_not_collide():
+    # Two SEX groups share the same MEASURE + TIME_PERIOD; they must produce
+    # DISTINCT (source, indicator, period) keys, not collapse onto one PK.
+    rows = abs_.parse(FIXTURES / "abs_sample.csv")
+    feb = [r for r in rows if r["period"] == "2026-02-01"]
+    keys = {(r["source"], r["indicator"], r["period"]) for r in feb}
+    assert len(feb) == 2
+    assert len(keys) == 2  # no collision
+    assert {r["value"] for r in feb} == {9.1, 8.4}
 
 
 def test_abs_ingest_from_fixture_upserts(monkeypatch):
@@ -88,11 +108,21 @@ def test_hmda_load_normalises_demographics_and_outcomes():
     df = hmda.load(FIXTURES / "hmda_sample.csv")
     assert {"sex", "race", "ethnicity", "action_taken",
             "originated", "denied"} <= set(df.columns)
-    assert len(df) == 4
-    # Row 2 (denied application) -> denied=1, originated=0.
+    assert len(df) == 5
+    # Denied applications -> denied=1, originated=0.
     denied = df[df["denied"] == 1]
-    assert set(denied["action_taken"].tolist()) == {3}
+    assert set(denied["action_taken"].dropna().tolist()) == {3}
     assert (df["originated"] + df["denied"] <= 1).all()
+
+
+def test_hmda_load_survives_missing_action_taken():
+    # A row with an NA action_taken must not abort the load (nullable Int64);
+    # it maps to 0 on both outcomes.
+    df = hmda.load(FIXTURES / "hmda_sample.csv")
+    na_row = df[df["action_taken"].isna()]
+    assert len(na_row) == 1
+    assert na_row["originated"].iloc[0] == 0
+    assert na_row["denied"].iloc[0] == 0
 
 
 def test_hmda_load_missing_columns_raises(tmp_path):

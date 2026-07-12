@@ -1,8 +1,11 @@
 # Data sources & connectors (Stage 6)
 
-Every credit `DataSource` (`src/data/sources.py`, `src/data/connectors/gated.py`)
-returns the **raw UCI schema** (`src.data.RAW_COLUMNS`) so the existing
-`src.preprocessing` chain consumes it unchanged. Macro connectors
+The **training-data** sources (`SyntheticSource`, `CsvSource` / real UCI in
+`src/data/sources.py`) return the **raw UCI schema** (`src.data.RAW_COLUMNS`) so
+the existing `src.preprocessing` chain consumes them unchanged. The **gated /
+external** sources in `src/data/connectors/gated.py` return their
+**provider-native** extract as-is (bureau and open-banking schemas differ per
+provider and are not coerced into `RAW_COLUMNS`). Macro connectors
 (`src/data/connectors/{rba,abs,apra}.py`) write to the `macro_indicators` table
 via `src.db.upsert_indicators`. Gated sources ship **disabled** and fail loudly
 until their flag is switched on in `feature_flags` **and** credentials are set.

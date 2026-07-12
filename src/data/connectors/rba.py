@@ -14,7 +14,7 @@ import io
 import pandas as pd
 
 from ...db import upsert_indicators
-from . import to_iso_period
+from . import to_float, to_iso_period
 
 SOURCE = "RBA"
 # Example: F-series household finances table (no key required to download).
@@ -39,11 +39,13 @@ def parse(path_or_bytes) -> list[dict]:
         except (ValueError, TypeError):
             continue  # metadata / blank line, not an observation
         for col, indicator in enumerate(series_ids, start=1):
-            val = r[col]
-            if indicator is None or pd.isna(indicator) or pd.isna(val) or str(val).strip() == "":
+            if indicator is None or pd.isna(indicator):
+                continue
+            value = to_float(r[col])
+            if value is None:  # blank / descriptive / non-numeric cell -> skip
                 continue
             rows.append({"source": SOURCE, "indicator": str(indicator).strip(),
-                         "period": period, "value": float(val)})
+                         "period": period, "value": value})
     return rows
 
 
