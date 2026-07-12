@@ -1,0 +1,5 @@
+derived_sex,derived_race,derived_ethnicity,action_taken,loan_amount,income,lei
+Male,White,Not Hispanic or Latino,1,255000,95,ABC123
+Female,Black or African American,Not Hispanic or Latino,3,185000,54,ABC123
+Female,Asian,Not Hispanic or Latino,1,320000,140,ABC123
+Male,White,Hispanic or Latino,3,210000,61,ABC123
