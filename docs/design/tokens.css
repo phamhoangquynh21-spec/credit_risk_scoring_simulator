@@ -1,0 +1,327 @@
+/* ============================================================================
+   Credit Risk Scoring Simulator — Design Tokens
+   ----------------------------------------------------------------------------
+   Single source of truth for color, type, spacing, radius, shadow, and motion.
+   Drop this into the Next.js app (import once in the root layout) and reference
+   the variables from Tailwind theme extensions or plain CSS.
+
+   Themes:
+     - Light is the default (:root).
+     - Dark is applied two ways: automatically via prefers-color-scheme, and
+       explicitly via [data-theme="dark"] so a user toggle can override the OS.
+     - [data-theme="light"] forces light even when the OS prefers dark.
+
+   Naming:
+     - Primitive ramps: --brand-500, --neutral-700, etc.
+     - Semantic aliases: --color-bg, --color-text, --risk-high, etc.
+   Components should reference the SEMANTIC names, not the raw ramps.
+   ============================================================================ */
+
+:root {
+  /* ---- Brand ramp (institutional azure/navy) ------------------------------ */
+  --brand-50:  #EEF3FB;
+  --brand-100: #D8E4F5;
+  --brand-200: #B3C9EC;
+  --brand-300: #85A8DF;
+  --brand-400: #5482CD;
+  --brand-500: #2F63B4;   /* interactive blue */
+  --brand-600: #1F4E97;   /* primary */
+  --brand-700: #183E7A;   /* primary hover / pressed */
+  --brand-800: #14315F;
+  --brand-900: #10264A;
+  --brand-950: #0A1830;
+
+  /* ---- Neutral ramp (cool ink/slate) ------------------------------------- */
+  --neutral-0:   #FFFFFF;
+  --neutral-25:  #FBFCFE;
+  --neutral-50:  #F5F7FA;
+  --neutral-100: #EDF1F6;
+  --neutral-200: #DFE5EE;
+  --neutral-300: #C7D0DD;
+  --neutral-400: #9AA6B8;
+  --neutral-500: #6B7789;
+  --neutral-600: #4C5766;
+  --neutral-700: #374150;
+  --neutral-800: #232C39;
+  --neutral-900: #151C27;
+  --neutral-950: #0D131C;
+
+  /* ---- Risk-band scale (colorblind-safe: teal / amber / red) --------------
+     Deliberately NOT green/amber/red. Teal carries a blue component so it
+     separates from red under deuteranopia/protanopia. Amber and red differ in
+     lightness as well as hue. Color is ALWAYS paired with an icon + text label
+     in the UI — never used alone to convey the band. ----------------------- */
+  --risk-low:          #0F766E;   /* teal-700  · 4.9:1 on white  */
+  --risk-low-surface:  #E7F3F0;
+  --risk-low-border:   #B6DBD3;
+  --risk-low-text:     #0B5952;   /* text on the low surface     */
+
+  --risk-medium:         #B45309; /* amber-800 · 5.9:1 on white  */
+  --risk-medium-surface: #FBEFDD;
+  --risk-medium-border:  #F0D3A6;
+  --risk-medium-text:    #8A3F06;
+
+  --risk-high:          #B42318;  /* red-700   · 6.4:1 on white  */
+  --risk-high-surface:  #FBE9E7;
+  --risk-high-border:   #F1C2BC;
+  --risk-high-text:     #8C1B12;
+
+  /* ---- Semantic states --------------------------------------------------- */
+  --success:         #067647;
+  --success-surface: #E7F4EC;
+  --warning:         #B45309;     /* shares the amber of risk-medium */
+  --warning-surface: #FBEFDD;
+  --danger:          #B42318;     /* shares the red of risk-high     */
+  --danger-surface:  #FBE9E7;
+  --info:            #1F4E97;
+  --info-surface:    #EAF0FA;
+
+  /* ---- Contribution direction (SHAP diverging pair) ---------------------- */
+  --contrib-up:   #B42318;        /* pushes probability of default UP   */
+  --contrib-down: #0F766E;        /* pushes probability of default DOWN */
+
+  /* ---- Categorical chart palette (distinct hue + lightness) -------------- */
+  --chart-1: #2F63B4;   /* blue   */
+  --chart-2: #B45309;   /* amber  */
+  --chart-3: #0F766E;   /* teal   */
+  --chart-4: #6D4AD1;   /* violet */
+  --chart-5: #A16207;   /* ochre  */
+  --chart-6: #64748B;   /* slate  */
+  --chart-grid: var(--neutral-200);
+  --chart-axis: var(--neutral-500);
+
+  /* ---- Semantic surface / text aliases (light) --------------------------- */
+  --color-bg:            var(--neutral-25);
+  --color-surface:       var(--neutral-0);
+  --color-surface-sunken:var(--neutral-50);
+  --color-surface-raised:var(--neutral-0);
+  --color-sidebar:       var(--brand-950);
+  --color-border:        var(--neutral-200);
+  --color-border-strong: var(--neutral-300);
+  --color-text:          var(--neutral-900);
+  --color-text-secondary:var(--neutral-600);
+  --color-text-muted:    var(--neutral-500);
+  --color-text-inverse:  var(--neutral-0);
+
+  --color-primary:        var(--brand-600);
+  --color-primary-hover:  var(--brand-700);
+  --color-primary-text:   var(--neutral-0);
+  --color-accent:         var(--brand-500);
+  --color-ring:           rgba(31, 78, 151, 0.40);
+
+  /* ---- Typography -------------------------------------------------------- */
+  /* IBM Plex is the design intent. Where a webfont cannot be embedded (the
+     static mockups), the system stacks below approximate it closely. In the
+     Next.js app, load the Plex families with next/font and keep the fallbacks. */
+  --font-sans:  "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system,
+                "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono:  "IBM Plex Mono", ui-monospace, "SF Mono", "Cascadia Mono",
+                "Segoe UI Mono", Consolas, "Liberation Mono", monospace;
+  --font-serif: "IBM Plex Serif", ui-serif, Georgia, Cambria,
+                "Times New Roman", serif;
+
+  --text-xs:   0.75rem;    /* 12px — eyebrows, table meta        */
+  --text-sm:   0.8125rem;  /* 13px — secondary / dense tables    */
+  --text-base: 0.9375rem;  /* 15px — body / UI default           */
+  --text-md:   1.0625rem;  /* 17px — section headings            */
+  --text-lg:   1.375rem;   /* 22px — page titles                 */
+  --text-xl:   1.875rem;   /* 30px — governance display headers  */
+  --text-metric: 1.75rem;  /* 28px — KPI metric values (mono)    */
+
+  --leading-tight: 1.25;
+  --leading-snug:  1.4;
+  --leading-normal:1.55;
+
+  --weight-regular: 400;
+  --weight-medium:  500;
+  --weight-semibold:600;
+  --weight-bold:    700;
+
+  --tracking-eyebrow: 0.06em;  /* uppercase labels */
+
+  /* ---- Spacing (4pt grid, dense-dashboard tuned) ------------------------- */
+  --space-1:  0.25rem;   /* 4  */
+  --space-2:  0.5rem;    /* 8  */
+  --space-3:  0.75rem;   /* 12 */
+  --space-4:  1rem;      /* 16 */
+  --space-5:  1.25rem;   /* 20 */
+  --space-6:  1.5rem;    /* 24 */
+  --space-8:  2rem;      /* 32 */
+  --space-10: 2.5rem;    /* 40 */
+  --space-12: 3rem;      /* 48 */
+  --space-16: 4rem;      /* 64 */
+
+  /* ---- Radius (restrained / institutional) ------------------------------- */
+  --radius-sm:   4px;
+  --radius-md:   6px;    /* default control + card radius */
+  --radius-lg:   8px;
+  --radius-xl:   12px;
+  --radius-full: 999px;
+
+  /* ---- Elevation --------------------------------------------------------- */
+  --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow-md: 0 4px 8px -2px rgba(16, 24, 40, 0.08), 0 2px 4px -2px rgba(16, 24, 40, 0.04);
+  --shadow-lg: 0 12px 24px -6px rgba(16, 24, 40, 0.10), 0 4px 8px -4px rgba(16, 24, 40, 0.06);
+  --focus-ring: 0 0 0 3px var(--color-ring);
+
+  /* ---- Motion ------------------------------------------------------------ */
+  --ease-out:   cubic-bezier(0.2, 0.6, 0.2, 1);
+  --ease-in-out:cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-fast:   120ms;
+  --dur-base:   180ms;
+  --dur-slow:   240ms;
+
+  /* ---- Layout ------------------------------------------------------------ */
+  --sidebar-width: 248px;
+  --disclaimer-height: 40px;
+  --content-max: 1360px;
+
+  color-scheme: light;
+}
+
+/* ============================================================================
+   DARK THEME
+   Lighter, desaturated risk colors so they stay legible on dark surfaces and
+   still meet contrast. Surfaces are cool near-black, not pure #000.
+   ============================================================================ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-bg:             #0B1017;
+    --color-surface:        #121A24;
+    --color-surface-sunken: #0E151E;
+    --color-surface-raised: #17212E;
+    --color-sidebar:        #0A1017;
+    --color-border:         #232F3E;
+    --color-border-strong:  #33414F;
+    --color-text:           #E6ECF3;
+    --color-text-secondary: #A9B6C6;
+    --color-text-muted:     #7E8C9E;
+    --color-text-inverse:   #0B1017;
+
+    --color-primary:       #4E86D6;
+    --color-primary-hover: #6C9CE0;
+    --color-primary-text:  #08111C;
+    --color-accent:        #6C9CE0;
+    --color-ring:          rgba(108, 156, 224, 0.50);
+
+    --risk-low:          #34D3B7;
+    --risk-low-surface:  #0E2A27;
+    --risk-low-border:   #1E4A44;
+    --risk-low-text:     #7BE7D4;
+
+    --risk-medium:         #F5B23E;
+    --risk-medium-surface: #2E2411;
+    --risk-medium-border:  #55431A;
+    --risk-medium-text:    #F8CE82;
+
+    --risk-high:          #F98E80;
+    --risk-high-surface:  #331A18;
+    --risk-high-border:   #5A2C28;
+    --risk-high-text:     #FBB3AA;
+
+    --success:         #35C285;
+    --success-surface: #0E2A1E;
+    --warning:         #F5B23E;
+    --warning-surface: #2E2411;
+    --danger:          #F98E80;
+    --danger-surface:  #331A18;
+    --info:            #4E86D6;
+    --info-surface:    #10233D;
+
+    --contrib-up:   #F98E80;
+    --contrib-down: #34D3B7;
+
+    --chart-1: #4E86D6;
+    --chart-2: #F5B23E;
+    --chart-3: #34D3B7;
+    --chart-4: #A78BFA;
+    --chart-5: #D6A24E;
+    --chart-6: #94A3B8;
+    --chart-grid: #232F3E;
+    --chart-axis: #7E8C9E;
+
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.40);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.30);
+    --shadow-md: 0 4px 10px -2px rgba(0, 0, 0, 0.50);
+    --shadow-lg: 0 14px 28px -6px rgba(0, 0, 0, 0.55);
+
+    color-scheme: dark;
+  }
+}
+
+/* Explicit override: user toggled dark regardless of OS setting. */
+[data-theme="dark"] {
+  --color-bg:             #0B1017;
+  --color-surface:        #121A24;
+  --color-surface-sunken: #0E151E;
+  --color-surface-raised: #17212E;
+  --color-sidebar:        #0A1017;
+  --color-border:         #232F3E;
+  --color-border-strong:  #33414F;
+  --color-text:           #E6ECF3;
+  --color-text-secondary: #A9B6C6;
+  --color-text-muted:     #7E8C9E;
+  --color-text-inverse:   #0B1017;
+
+  --color-primary:       #4E86D6;
+  --color-primary-hover: #6C9CE0;
+  --color-primary-text:  #08111C;
+  --color-accent:        #6C9CE0;
+  --color-ring:          rgba(108, 156, 224, 0.50);
+
+  --risk-low:          #34D3B7;
+  --risk-low-surface:  #0E2A27;
+  --risk-low-border:   #1E4A44;
+  --risk-low-text:     #7BE7D4;
+
+  --risk-medium:         #F5B23E;
+  --risk-medium-surface: #2E2411;
+  --risk-medium-border:  #55431A;
+  --risk-medium-text:    #F8CE82;
+
+  --risk-high:          #F98E80;
+  --risk-high-surface:  #331A18;
+  --risk-high-border:   #5A2C28;
+  --risk-high-text:     #FBB3AA;
+
+  --success:         #35C285;
+  --success-surface: #0E2A1E;
+  --warning:         #F5B23E;
+  --warning-surface: #2E2411;
+  --danger:          #F98E80;
+  --danger-surface:  #331A18;
+  --info:            #4E86D6;
+  --info-surface:    #10233D;
+
+  --contrib-up:   #F98E80;
+  --contrib-down: #34D3B7;
+
+  --chart-1: #4E86D6;
+  --chart-2: #F5B23E;
+  --chart-3: #34D3B7;
+  --chart-4: #A78BFA;
+  --chart-5: #D6A24E;
+  --chart-6: #94A3B8;
+  --chart-grid: #232F3E;
+  --chart-axis: #7E8C9E;
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.40);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.30);
+  --shadow-md: 0 4px 10px -2px rgba(0, 0, 0, 0.50);
+  --shadow-lg: 0 14px 28px -6px rgba(0, 0, 0, 0.55);
+
+  color-scheme: dark;
+}
+
+/* Respect users who ask for less motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
