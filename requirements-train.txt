@@ -1,0 +1,3 @@
+# Training/registry-only dependencies — lazy-imported, NOT needed to serve.
+# Install alongside requirements.txt only when training or logging model runs.
+mlflow>=2.10
