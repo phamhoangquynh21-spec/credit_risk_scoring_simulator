@@ -49,6 +49,88 @@ class FakeClient:
         return _FakeQuery(self, name)
 
 
+# --- Stateful fake: models table state so we can assert cross-write effects
+#     (e.g. that a failed promote never touches the incumbent champion).
+
+class _StatefulQuery:
+    def __init__(self, store, table):
+        self._store = store
+        self.table = table
+        self._filters = []          # [(op, col, val)]
+        self._mode = None
+        self._payload = None
+        self._order = None
+        self._desc = False
+        self._limit = None
+
+    def select(self, *a):
+        self._mode = "select"
+        return self
+
+    def insert(self, payload):
+        self._mode, self._payload = "insert", payload
+        return self
+
+    def update(self, payload):
+        self._mode, self._payload = "update", payload
+        return self
+
+    def eq(self, col, val):
+        self._filters.append(("eq", col, val))
+        return self
+
+    def neq(self, col, val):
+        self._filters.append(("neq", col, val))
+        return self
+
+    def limit(self, n):
+        self._limit = n
+        return self
+
+    def order(self, col, desc=False):
+        self._order, self._desc = col, desc
+        return self
+
+    def _match(self, row):
+        for op, col, val in self._filters:
+            if op == "eq" and row.get(col) != val:
+                return False
+            if op == "neq" and row.get(col) == val:
+                return False
+        return True
+
+    def execute(self):
+        rows = self._store.tables.setdefault(self.table, [])
+        if self._mode == "insert":
+            items = self._payload if isinstance(self._payload, list) else [self._payload]
+            added = []
+            for p in items:
+                r = dict(p)
+                r.setdefault("id", len(rows) + 1)
+                rows.append(r)
+                added.append(dict(r))
+            return _Result(added)
+        matched = [r for r in rows if self._match(r)]
+        if self._mode == "update":
+            for r in matched:
+                r.update(self._payload)
+            return _Result([dict(r) for r in matched])
+        if self._order:
+            matched = sorted(matched, key=lambda r: r.get(self._order) or "",
+                             reverse=self._desc)
+        if self._limit is not None:
+            matched = matched[:self._limit]
+        return _Result([dict(r) for r in matched])
+
+
+class StatefulClient:
+    def __init__(self, tables):
+        self.tables = {k: [dict(r) for r in v] for k, v in tables.items()}
+
+    def table(self, name):
+        return _StatefulQuery(self, name)
+
+
 # --- models_repo -----------------------------------------------------------
 
 def test_register_model_version_builds_insert():
@@ -89,40 +171,52 @@ def test_promote_model_rejects_invalid_stage():
 
 
 def test_promote_to_champion_demotes_current_champion():
-    fake = FakeClient(results=[
-        [{"semver": "1.0.0", "stage": "champion"}],  # get_champion
-        [],                                          # demote update
-        [{"semver": "2.0.0", "stage": "champion"}],  # promote update
-        [{"id": 1}],                                 # audit insert
-    ])
+    fake = StatefulClient({"model_versions": [
+        {"semver": "1.0.0", "stage": "champion"},
+        {"semver": "2.0.0", "stage": "staging"},
+    ]})
     row = models_repo.promote_model("2.0.0", "champion", client=fake)
     assert row["semver"] == "2.0.0"
 
-    demote, promote, audit = fake.calls[1], fake.calls[2], fake.calls[3]
-    assert demote.table == "model_versions"
-    assert demote.arg("update") == {"stage": "retired"}
-    assert ("eq", ("semver", "1.0.0"), {}) in demote.ops
-    assert promote.arg("update") == {"stage": "champion"}
-    assert ("eq", ("semver", "2.0.0"), {}) in promote.ops
-    assert audit.table == "audit_logs"
-    assert audit.arg("insert")["detail"] == {
-        "to_stage": "champion", "demoted": "1.0.0"}
+    by_semver = {r["semver"]: r["stage"] for r in fake.tables["model_versions"]}
+    assert by_semver == {"1.0.0": "retired", "2.0.0": "champion"}
+    audit = fake.tables["audit_logs"][0]
+    assert audit["action"] == "promote_model"
+    assert audit["detail"] == {"to_stage": "champion", "demoted": ["1.0.0"]}
+
+
+def test_promote_nonexistent_semver_to_champion_leaves_incumbent():
+    # Fix 1: a typo'd/nonexistent semver must NOT retire the incumbent champion
+    # (previously the demote happened before the existence check -> zero champions).
+    fake = StatefulClient({"model_versions": [
+        {"semver": "1.0.0", "stage": "champion"},
+    ]})
+    with pytest.raises(ValueError, match="not found"):
+        models_repo.promote_model("9.9.9-typo", "champion", client=fake)
+
+    # Incumbent untouched, and no audit/write side effects occurred.
+    assert fake.tables["model_versions"] == [
+        {"semver": "1.0.0", "stage": "champion"}]
+    assert fake.tables.get("audit_logs", []) == []
 
 
 def test_promote_to_non_champion_stage_skips_demotion():
-    fake = FakeClient(results=[
-        [{"semver": "2.0.0", "stage": "staging"}],  # promote update
-        [{"id": 1}],                                # audit insert
-    ])
-    models_repo.promote_model("2.0.0", "staging", client=fake)
-    assert len(fake.calls) == 2  # no get_champion, no demote
-    audit = fake.calls[1]
-    assert audit.table == "audit_logs"
-    assert audit.arg("insert")["action"] == "promote_model"
+    fake = StatefulClient({"model_versions": [
+        {"semver": "1.0.0", "stage": "champion"},
+        {"semver": "2.0.0", "stage": "dev"},
+    ]})
+    row = models_repo.promote_model("2.0.0", "staging", client=fake)
+    assert row["stage"] == "staging"
+    # Champion left alone; audit records the promotion.
+    by_semver = {r["semver"]: r["stage"] for r in fake.tables["model_versions"]}
+    assert by_semver == {"1.0.0": "champion", "2.0.0": "staging"}
+    audit = fake.tables["audit_logs"][0]
+    assert audit["action"] == "promote_model"
+    assert "demoted" not in audit["detail"]
 
 
 def test_promote_unknown_semver_raises():
-    fake = FakeClient(results=[[]])  # update matched no rows
+    fake = StatefulClient({"model_versions": []})
     with pytest.raises(ValueError, match="not found"):
         models_repo.promote_model("0.0.0", "staging", client=fake)
 
@@ -187,8 +281,8 @@ def test_add_fairness_results_injects_run_id():
 
 def test_get_latest_run_results_uses_newest_run():
     fake = FakeClient(results=[
-        [{"id": "run-2"}],                       # latest fairness_runs
-        [{"run_id": "run-2", "grp": "F"}],       # its results
+        [{"id": "run-2"}, {"id": "run-1"}],      # runs newest-first
+        [{"run_id": "run-2", "grp": "F"}],       # newest run has results
     ])
     out = fairness_repo.get_latest_run_results("mv-1", client=fake)
     runs, res = fake.calls
@@ -199,10 +293,32 @@ def test_get_latest_run_results_uses_newest_run():
     assert out == [{"run_id": "run-2", "grp": "F"}]
 
 
+def test_get_latest_run_results_skips_empty_newest_run():
+    # Fix 2: newest run has NO results -> fall back to the prior run with results.
+    fake = FakeClient(results=[
+        [{"id": "run-2"}, {"id": "run-1"}],      # runs newest-first
+        [],                                      # run-2 (newest) empty
+        [{"run_id": "run-1", "grp": "F"}],       # run-1 has results
+    ])
+    out = fairness_repo.get_latest_run_results("mv-1", client=fake)
+    assert out == [{"run_id": "run-1", "grp": "F"}]
+    assert ("eq", ("run_id", "run-2"), {}) in fake.calls[1].ops
+    assert ("eq", ("run_id", "run-1"), {}) in fake.calls[2].ops
+
+
 def test_get_latest_run_results_empty_when_no_runs():
     fake = FakeClient(results=[[]])
     assert fairness_repo.get_latest_run_results("mv-1", client=fake) == []
-    assert len(fake.calls) == 1  # no second query
+    assert len(fake.calls) == 1  # no per-run queries
+
+
+def test_get_latest_run_results_empty_when_no_run_has_results():
+    fake = FakeClient(results=[
+        [{"id": "run-2"}, {"id": "run-1"}],      # runs newest-first
+        [],                                      # run-2 empty
+        [],                                      # run-1 empty
+    ])
+    assert fairness_repo.get_latest_run_results("mv-1", client=fake) == []
 
 
 # --- macro_repo --------------------------------------------------------------

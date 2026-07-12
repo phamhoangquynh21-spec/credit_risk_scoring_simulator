@@ -24,12 +24,19 @@ def add_fairness_results(run_id, results: list[dict], client=None) -> None:
 
 
 def get_latest_run_results(model_version_id, client=None) -> list:
-    """Results of the most recent fairness run for a model version ([] if none)."""
+    """Results of the most recent fairness run that actually has results.
+
+    Runs are scanned newest-first, so an empty/failed run (a fairness_runs row
+    with no fairness_results) is skipped in favour of the prior good run
+    instead of masking it. Returns [] only when no run has any results.
+    """
     client = client or get_service_client()
     runs = (client.table("fairness_runs").select("id")
             .eq("model_version_id", model_version_id)
-            .order("run_at", desc=True).limit(1).execute().data)
-    if not runs:
-        return []
-    return (client.table("fairness_results").select("*")
-            .eq("run_id", runs[0]["id"]).execute().data)
+            .order("run_at", desc=True).execute().data)
+    for run in runs:
+        results = (client.table("fairness_results").select("*")
+                   .eq("run_id", run["id"]).execute().data)
+        if results:
+            return results
+    return []
