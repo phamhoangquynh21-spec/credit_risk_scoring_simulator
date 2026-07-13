@@ -7,6 +7,8 @@ imported here.
 """
 from __future__ import annotations
 
+import math
+
 import numpy as np
 from scipy import stats
 
@@ -59,13 +61,26 @@ def drift_report(reference_df, current_df, features: list[str]) -> list[dict]:
     """Per-feature drift of ``current_df`` against ``reference_df``.
 
     Returns [{feature, psi, ks_stat, ks_pvalue, severity}] with severity in
-    "ok" | "warn" | "alert". Nulls are dropped before comparison (data-quality
-    checks cover them separately).
+    "ok" | "warn" | "alert" | "insufficient_data". Nulls are dropped before
+    comparison (data-quality checks cover them separately). A feature with fewer
+    than two non-null values on either side (e.g. 100% null in the current
+    period) is degenerate: PSI/KS would be NaN, so it is reported with
+    psi/ks None and severity "insufficient_data" (never a silent "ok"), and is
+    excluded from the persisted metric by ``record_drift``.
     """
     report = []
     for feature in features:
         ref = reference_df[feature].dropna().to_numpy(dtype=float)
         cur = current_df[feature].dropna().to_numpy(dtype=float)
+        if ref.size < 2 or cur.size < 2:
+            report.append({
+                "feature": feature,
+                "psi": None,
+                "ks_stat": None,
+                "ks_pvalue": None,
+                "severity": "insufficient_data",
+            })
+            continue
         psi_value = psi(ref, cur)
         ks_stat, ks_pvalue = ks_test(ref, cur)
         report.append({
@@ -78,19 +93,32 @@ def drift_report(reference_df, current_df, features: list[str]) -> list[dict]:
     return report
 
 
+def _is_finite(value) -> bool:
+    """True only for a real, finite number (guards json.dumps(NaN/Inf), which
+    emits invalid JSON that Postgres rejects)."""
+    return isinstance(value, (int, float)) and math.isfinite(value)
+
+
 def record_drift(report: list[dict], period_iso: str, client=None) -> None:
-    """Persist a drift_report: one monitoring_metrics row per feature
-    (metric ``drift_psi.<feature>``, value=psi) plus a ``drift_alert``
-    audit_logs row for every non-ok feature."""
+    """Persist a drift_report: one monitoring_metrics row per feature with a
+    finite PSI (metric ``drift_psi.<feature>``, value=psi) plus a
+    ``drift_alert`` audit_logs row for every non-ok feature.
+
+    Features with a non-finite/None PSI (``insufficient_data``) are NEVER
+    written to monitoring_metrics — json.dumps(NaN) is invalid JSON and Postgres
+    rejects it — but they are still audit-logged (severity != "ok"), so a
+    degenerate period is surfaced rather than silently dropped.
+    """
     rows = [{"period": period_iso, "metric": f"drift_psi.{r['feature']}",
-             "value": r["psi"]} for r in report]
-    db.record_metrics(rows, client=client)
+             "value": r["psi"]} for r in report if _is_finite(r["psi"])]
+    if rows:
+        db.record_metrics(rows, client=client)
     for r in report:
         if r["severity"] != "ok":
             db.log_action(None, "drift_alert", "monitoring", r["feature"], {
-                "psi": r["psi"],
-                "ks_stat": r["ks_stat"],
-                "ks_pvalue": r["ks_pvalue"],
+                "psi": r["psi"] if _is_finite(r["psi"]) else None,
+                "ks_stat": r["ks_stat"] if _is_finite(r["ks_stat"]) else None,
+                "ks_pvalue": r["ks_pvalue"] if _is_finite(r["ks_pvalue"]) else None,
                 "severity": r["severity"],
                 "period": period_iso,
             }, client=client)

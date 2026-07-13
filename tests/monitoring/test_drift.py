@@ -112,3 +112,51 @@ def test_record_drift_no_audit_when_all_ok():
     fake = FakeClient()
     drift.record_drift(report, _PERIOD, client=fake)
     assert [c.table for c in fake.calls] == ["monitoring_metrics"]
+
+
+# --- degenerate / NaN handling (Fix C) -----------------------------------------
+
+def test_all_null_current_feature_is_insufficient_not_ok():
+    ref = pd.DataFrame({"limit_bal": _limit_bal(1)})
+    cur = pd.DataFrame({"limit_bal": [np.nan] * 2000})  # 100% null this period
+    report = drift.drift_report(ref, cur, ["limit_bal"])
+    row = report[0]
+    assert row["severity"] == "insufficient_data"
+    assert row["severity"] != "ok"
+    assert row["psi"] is None and row["ks_stat"] is None
+    # No NaN escapes; math.isnan on None would raise if a NaN slipped through.
+    assert not (isinstance(row["psi"], float) and np.isnan(row["psi"]))
+
+
+def test_record_drift_skips_nan_metric_but_audits_it():
+    report = drift.drift_report(
+        pd.DataFrame({"limit_bal": _limit_bal(1)}),
+        pd.DataFrame({"limit_bal": [np.nan] * 2000}),
+        ["limit_bal"])
+    fake = FakeClient(results=[[{"id": 1}]])  # only the audit insert executes
+    drift.record_drift(report, _PERIOD, client=fake)
+
+    # Degenerate feature is audited but NEVER written to monitoring_metrics.
+    assert [c.table for c in fake.calls] == ["audit_logs"]
+    detail = fake.calls[0].arg("insert")["detail"]
+    assert detail["severity"] == "insufficient_data"
+    for key in ("psi", "ks_stat", "ks_pvalue"):
+        assert detail[key] is None  # JSON null, never NaN
+
+
+def test_record_drift_mixed_persists_only_finite_psi():
+    report = [
+        {"feature": "limit_bal", "psi": 0.31, "ks_stat": 0.2,
+         "ks_pvalue": 0.001, "severity": "alert"},
+        {"feature": "age", "psi": None, "ks_stat": None,
+         "ks_pvalue": None, "severity": "insufficient_data"},
+    ]
+    fake = FakeClient(results=[[], [{"id": 1}], [{"id": 2}]])
+    drift.record_drift(report, _PERIOD, client=fake)
+    metrics_call = fake.calls[0]
+    assert metrics_call.table == "monitoring_metrics"
+    # Only the finite-PSI feature is upserted.
+    assert metrics_call.arg("upsert") == [
+        {"period": _PERIOD, "metric": "drift_psi.limit_bal", "value": 0.31}]
+    # Both non-ok features are audited.
+    assert [c.table for c in fake.calls[1:]] == ["audit_logs", "audit_logs"]
