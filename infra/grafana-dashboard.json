@@ -14,8 +14,8 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (path, status) (rate(http_requests_total[5m]))",
-          "legendFormat": "{{path}} {{status}}"
+          "expr": "sum by (method, status_class) (rate(http_requests_total[5m]))",
+          "legendFormat": "{{method}} {{status_class}}"
         }
       ]
     },
@@ -28,8 +28,8 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "histogram_quantile(0.95, sum by (le, path) (rate(http_request_duration_seconds_bucket[5m])))",
-          "legendFormat": "{{path}}"
+          "expr": "histogram_quantile(0.95, sum by (le, method) (rate(http_request_duration_seconds_bucket[5m])))",
+          "legendFormat": "{{method}}"
         }
       ]
     },

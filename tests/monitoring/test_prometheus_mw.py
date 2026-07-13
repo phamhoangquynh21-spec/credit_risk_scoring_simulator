@@ -89,20 +89,21 @@ def test_middleware_records_count_and_latency(monkeypatch):
     async def receive():
         return {"type": "http.request"}
 
-    scope = {"type": "http", "method": "POST", "path": "/api/v1/score"}
+    scope = {"type": "http", "method": "POST", "path": "/predictions/abc-123"}
     asyncio.run(middleware_cls(app)(scope, receive, send))
 
     assert [m["type"] for m in sent] == ["http.response.start",
                                          "http.response.body"]
     counter, histogram = stub.created
     assert counter.name == "http_requests_total"
+    # Low-cardinality labels only: no raw path (would explode on /{uuid} routes).
+    assert counter.labelnames == ["method", "status_class"]
     assert counter.events == [("inc", {"method": "POST",
-                                       "path": "/api/v1/score",
-                                       "status": "200"})]
+                                       "status_class": "2xx"})]
     assert histogram.name == "http_request_duration_seconds"
+    assert histogram.labelnames == ["method"]
     (event, labels, value), = histogram.events
-    assert (event, labels) == ("observe", {"method": "POST",
-                                           "path": "/api/v1/score"})
+    assert (event, labels) == ("observe", {"method": "POST"})
     assert value >= 0
 
 
@@ -124,8 +125,7 @@ def test_middleware_records_500_when_app_crashes(monkeypatch):
         asyncio.run(middleware_cls(broken_app)(scope, receive, send))
 
     counter = stub.created[0]
-    assert counter.events == [("inc", {"method": "GET", "path": "/crash",
-                                       "status": "500"})]
+    assert counter.events == [("inc", {"method": "GET", "status_class": "5xx"})]
 
 
 def test_middleware_passes_through_non_http_scopes(monkeypatch):

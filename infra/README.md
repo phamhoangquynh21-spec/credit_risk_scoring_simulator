@@ -30,8 +30,16 @@ def metrics() -> PlainTextResponse:
 
 Metrics exposed:
 
-- `http_requests_total{method, path, status}` — request counter
-- `http_request_duration_seconds{method, path}` — latency histogram
+- `http_requests_total{method, status_class}` — request counter
+- `http_request_duration_seconds{method}` — latency histogram
+
+Labels are deliberately low-cardinality (method + status class only). The raw
+request path is **not** a label: parameterized routes like
+`/predictions/{uuid}` would otherwise create a new time series per id and blow
+up Prometheus. Per-route breakdown needs the framework's route *template*
+(e.g. Starlette's `request.scope["route"].path`), which is app-level
+integration deferred to Stage 2 — add a `route` label there, never the raw
+path.
 
 Calling `metrics_middleware()` / `metrics_endpoint()` without
 `prometheus_client` installed raises a RuntimeError pointing at

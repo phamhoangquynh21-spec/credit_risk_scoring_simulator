@@ -31,14 +31,25 @@ def _metrics():
     global _METRICS
     if _METRICS is None:
         prom = _load_prometheus()
+        # Labels are deliberately LOW-cardinality: method + status_class only.
+        # The raw request path is NOT a label — parameterized routes
+        # (/predictions/{uuid}) would explode the time-series count. Per-route
+        # breakdown needs route-template labels from the web framework, which is
+        # app-level integration (Stage 2); see infra/README.md.
         _METRICS = (
             prom.Counter(REQUEST_COUNT_METRIC, "Total HTTP requests.",
-                         ["method", "path", "status"]),
+                         ["method", "status_class"]),
             prom.Histogram(REQUEST_LATENCY_METRIC,
                            "HTTP request latency in seconds.",
-                           ["method", "path"]),
+                           ["method"]),
         )
     return _METRICS
+
+
+def _status_class(status_code: str) -> str:
+    """Map a status code to its class bucket, e.g. '200' -> '2xx'."""
+    first = status_code[:1]
+    return f"{first}xx" if first.isdigit() else "5xx"
 
 
 def metrics_middleware():
@@ -69,10 +80,10 @@ def metrics_middleware():
                 await self.app(scope, receive, send_wrapper)
             finally:
                 method = scope.get("method", "")
-                path = scope.get("path", "")
-                requests_total.labels(method=method, path=path,
-                                      status=status["code"]).inc()
-                request_latency.labels(method=method, path=path).observe(
+                requests_total.labels(
+                    method=method,
+                    status_class=_status_class(status["code"])).inc()
+                request_latency.labels(method=method).observe(
                     time.perf_counter() - start)
 
     return _MetricsMiddleware
