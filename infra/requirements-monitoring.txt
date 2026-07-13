@@ -1,0 +1,5 @@
+# Optional monitoring extras — lazy-imported; the base app and all tests run
+# without them. Needed only to expose Prometheus metrics (src/monitoring/
+# prometheus_mw.py) or to use Evidently as the drift-report upgrade path.
+prometheus-client>=0.20
+evidently>=0.4
