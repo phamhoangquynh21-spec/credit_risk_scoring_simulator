@@ -175,14 +175,50 @@ def test_promote_to_champion_demotes_current_champion():
         {"semver": "1.0.0", "stage": "champion"},
         {"semver": "2.0.0", "stage": "staging"},
     ]})
-    row = models_repo.promote_model("2.0.0", "champion", client=fake)
+    row = models_repo.promote_model("2.0.0", "champion", approved_by="gov-1",
+                                    client=fake)
     assert row["semver"] == "2.0.0"
 
     by_semver = {r["semver"]: r["stage"] for r in fake.tables["model_versions"]}
     assert by_semver == {"1.0.0": "retired", "2.0.0": "champion"}
     audit = fake.tables["audit_logs"][0]
     assert audit["action"] == "promote_model"
-    assert audit["detail"] == {"to_stage": "champion", "demoted": ["1.0.0"]}
+    assert audit["detail"] == {"to_stage": "champion", "approved_by": "gov-1",
+                               "demoted": ["1.0.0"]}
+
+
+def test_promote_to_champion_without_approval_is_refused():
+    # Governance gate: champion promotion with no approver is refused up-front,
+    # before any write -> incumbent untouched, no audit side effects.
+    fake = StatefulClient({"model_versions": [
+        {"semver": "1.0.0", "stage": "champion"},
+        {"semver": "2.0.0", "stage": "staging"},
+    ]})
+    with pytest.raises(ValueError, match="governance approval"):
+        models_repo.promote_model("2.0.0", "champion", client=fake)
+
+    by_semver = {r["semver"]: r["stage"] for r in fake.tables["model_versions"]}
+    assert by_semver == {"1.0.0": "champion", "2.0.0": "staging"}
+    assert fake.tables.get("audit_logs", []) == []
+
+
+def test_promote_to_champion_with_approval_sets_approved_by():
+    fake = StatefulClient({"model_versions": [
+        {"semver": "1.0.0", "stage": "champion"},
+        {"semver": "2.0.0", "stage": "staging"},
+    ]})
+    row = models_repo.promote_model("2.0.0", "champion", approved_by="gov-1",
+                                    client=fake)
+    assert row["stage"] == "champion"
+    assert row["approved_by"] == "gov-1"
+
+    rows = {r["semver"]: r for r in fake.tables["model_versions"]}
+    assert rows["2.0.0"]["stage"] == "champion"
+    assert rows["2.0.0"]["approved_by"] == "gov-1"
+    assert rows["1.0.0"]["stage"] == "retired"
+    audit = fake.tables["audit_logs"][0]
+    assert audit["action"] == "promote_model"
+    assert audit["detail"]["approved_by"] == "gov-1"
 
 
 def test_promote_nonexistent_semver_to_champion_leaves_incumbent():
@@ -192,7 +228,8 @@ def test_promote_nonexistent_semver_to_champion_leaves_incumbent():
         {"semver": "1.0.0", "stage": "champion"},
     ]})
     with pytest.raises(ValueError, match="not found"):
-        models_repo.promote_model("9.9.9-typo", "champion", client=fake)
+        models_repo.promote_model("9.9.9-typo", "champion",
+                                  approved_by="gov-1", client=fake)
 
     # Incumbent untouched, and no audit/write side effects occurred.
     assert fake.tables["model_versions"] == [
