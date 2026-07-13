@@ -1,0 +1,4 @@
+# LLM memo providers — optional; the template fallback works without them;
+# lazy-imported inside src/llm/provider.py complete() only.
+anthropic>=0.40
+openai>=1.50
