@@ -1,5 +1,36 @@
 # Changelog
 
+## Stage 5 — monitoring + grounded LLM memos (2026-07-13)
+
+Added `src/monitoring/` and `src/llm/` — all optional dependencies
+(evidently, prometheus_client, anthropic, openai) lazy-imported so every module
+imports and every test runs in the base environment. **5.1** `drift.py`:
+PSI (quantile bins, warn 0.1 / alert 0.2) + two-sample KS per feature;
+`record_drift` persists `drift_psi.<feature>` monitoring_metrics rows and a
+`drift_alert` audit_logs row per non-ok feature. **5.2** `quality.py`:
+null-rate and out-of-contract-rate per feature against
+`src.ml.feature_contract` (thresholds 5%), persisted as `dq_null_rate.<f>` /
+`dq_ooc_rate.<f>` plus `dq_alert` audit rows. **5.3** `prometheus_mw.py`:
+pure-ASGI middleware factory (no FastAPI import) recording
+`http_requests_total` + `http_request_duration_seconds`, and a
+`metrics_endpoint()` exposition helper; without prometheus_client both raise a
+RuntimeError naming `infra/requirements-monitoring.txt`. New `infra/` carries
+the optional monitoring requirements, a Grafana dashboard (request rate, p95
+latency, `drift_psi.<feature>` panel over monitoring_metrics) and wiring docs.
+**5.4** `src/llm/`: `provider.py` (LLMProvider ABC; Anthropic `claude-sonnet-5`
+/ OpenAI `gpt-4o`, SDKs in the new root `requirements-llm.txt`, keys read at
+call time) and `memo.py`, the grounded memo layer — whitelist-only
+`build_memo_inputs`, PII redaction (`name/email/phone/address/dob/national_id`
+stripped pre-call), prompt built solely from the structured inputs with reason
+codes from `src.ml.reason_codes`, `validate_grounding` rejecting any memo
+number/feature token absent from the inputs (`GroundingError`), deterministic
+template fallback on provider=None or provider failure (never raises for
+provider errors), a mandatory contribution-disclaimer + "Decision-support
+only; human review required." footer (guard-tested), and `persist_memo`
+writing the exact `llm_reports` columns with `review_status='draft'` gating
+external use pending human review. Covered by 41 offline tests
+(tests/monitoring 24, tests/llm 17) — no network, no optional libs.
+
 ## Stage 6 — data connectors (2026-07-12)
 
 Added `src/data/`, an additive data layer that never touches `models/` or the
