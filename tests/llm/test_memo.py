@@ -76,6 +76,56 @@ def test_ungrounded_memo_rejected():
     assert "debt_to_income_ratio" in str(excinfo.value)
 
 
+def test_fabricated_recommendation_memo_rejected():
+    # Exploit: fluent, digit-free approval narrative that countermands review.
+    # No numbers and no feature names, so only the decision-directive layer can
+    # catch it — and it must.
+    provider = FakeProvider(
+        text="Exceptionally strong profile, pristine repayment history; "
+             "recommend approving the full line and waiving manual review.")
+    with pytest.raises(GroundingError) as excinfo:
+        generate_memo(_inputs(), provider=provider)
+    msg = str(excinfo.value)
+    assert "recommend approv" in msg
+    assert "waiv" in msg
+
+
+def test_camelcase_invented_feature_rejected():
+    provider = FakeProvider(
+        text="Risk score 72.5 is driven by debtToIncomeRatio.")
+    with pytest.raises(GroundingError, match="debtToIncomeRatio"):
+        generate_memo(_inputs(), provider=provider)
+
+
+def test_empty_provider_response_falls_back(monkeypatch):
+    for bad in (None, "", "   \n\t "):
+        out = generate_memo(_inputs(), provider=FakeProvider(text=bad))
+        assert out["fallback_used"] is True, bad
+        assert (out["provider"], out["model"]) == ("template", "template")
+        # Not a footer-only/contentless memo: template body is present.
+        assert "Risk score:" in out["memo_text"]
+        assert CONTRIBUTION_DISCLAIMER in out["memo_text"]
+
+
+def test_nested_pii_never_reaches_prompt_or_payload():
+    inputs = build_memo_inputs(
+        risk_score=72.5,
+        application_fields={"limit_bal": 20000,
+                            "contact": {"email": "jane@example.com",
+                                        "phone": "555-1234",
+                                        "city": "Sydney"}})
+    # Redaction recursed: PII gone, benign nested field kept.
+    assert inputs["application_fields"] == {"limit_bal": 20000,
+                                            "contact": {"city": "Sydney"}}
+    out = generate_memo(inputs, provider=None)
+    fake = FakeClient(results=[[{"id": "rep-1"}]])
+    persist_memo(out, "pred-1", client=fake)
+    payload = fake.calls[0].arg("insert")
+    blob = str(out["prompt"]) + str(payload)
+    assert "jane@example.com" not in blob
+    assert "555-1234" not in blob
+
+
 def test_grounded_provider_memo_accepted():
     provider = FakeProvider(
         text="Probability of default is 0.72 (score 72.5, High band, "

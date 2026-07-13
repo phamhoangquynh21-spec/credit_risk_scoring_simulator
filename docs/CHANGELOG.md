@@ -22,10 +22,18 @@ latency, `drift_psi.<feature>` panel over monitoring_metrics) and wiring docs.
 call time) and `memo.py`, the grounded memo layer — whitelist-only
 `build_memo_inputs`, PII redaction (`name/email/phone/address/dob/national_id`
 stripped pre-call), prompt built solely from the structured inputs with reason
-codes from `src.ml.reason_codes`, `validate_grounding` rejecting any memo
-number/feature token absent from the inputs (`GroundingError`), deterministic
-template fallback on provider=None or provider failure (never raises for
-provider errors), a mandatory contribution-disclaimer + "Decision-support
+codes from `src.ml.reason_codes`, and `validate_grounding` — a LAYERED
+HEURISTIC defense (invented-number + feature-name incl. camelCase +
+decision-directive/review-countermanding checks), NOT a factual-correctness
+guarantee: it flags fabricated numbers, invented feature names and
+"recommend/approve/decline/waive/override/skip-review/guarantee"-style
+language (`GroundingError`), but cannot verify fluent digit-free prose. The
+AUTHORITATIVE control is that every memo persists with `review_status='draft'`
+behind mandatory human review before any external use. A deterministic
+template fallback covers provider=None, provider failure, and empty/non-string
+provider output (never raises for provider failures, never persists a
+contentless memo); PII redaction recurses into nested dicts. Every memo carries
+a mandatory contribution-disclaimer + "Decision-support
 only; human review required." footer (guard-tested), and `persist_memo`
 writing the exact `llm_reports` columns with `review_status='draft'` gating
 external use pending human review. Covered by 41 offline tests
