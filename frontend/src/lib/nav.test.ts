@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { navForRole } from "./nav";
+import { navForRole, navGroups } from "./nav";
 
 describe("navForRole", () => {
   it("gives analyst the applicant + portfolio + performance links", () => {
@@ -8,8 +8,32 @@ describe("navForRole", () => {
     expect(hrefs).toContain("/portfolio");
     expect(hrefs).toContain("/performance");
   });
-  it("limits executive to performance only", () => {
+  it("gives every role the executive overview landing", () => {
+    expect(navForRole("analyst").map((n) => n.href)).toContain("/");
+    expect(navForRole("executive").map((n) => n.href)).toContain("/");
+  });
+  it("limits executive to read-only analytical surfaces (no data entry)", () => {
     const hrefs = navForRole("executive").map((n) => n.href);
-    expect(hrefs).toEqual(["/performance"]);
+    expect(hrefs).not.toContain("/assess");
+    expect(hrefs).not.toContain("/portfolio");
+    expect(hrefs).toContain("/performance");
+    expect(hrefs).toContain("/fairness");
+  });
+  it("exposes the admin section only to privileged roles", () => {
+    expect(navForRole("analyst").map((n) => n.href)).not.toContain("/audit");
+    for (const role of ["admin", "compliance", "governance"]) {
+      const hrefs = navForRole(role).map((n) => n.href);
+      expect(hrefs).toContain("/governance");
+      expect(hrefs).toContain("/audit");
+      expect(hrefs).toContain("/system");
+      expect(hrefs).toContain("/settings");
+    }
+  });
+});
+
+describe("navGroups", () => {
+  it("groups items under their section, preserving order", () => {
+    const groups = navGroups("analyst").map((g) => g.group);
+    expect(groups).toEqual(["Overview", "Assessment", "Governance"]);
   });
 });

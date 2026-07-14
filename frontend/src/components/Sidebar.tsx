@@ -1,28 +1,35 @@
-import Link from "next/link";
-import { navForRole } from "@/lib/nav";
+import { navGroups } from "@/lib/nav";
 import { signOut } from "@/app/login/actions";
+import { BrandMark, SignOutIcon } from "./icons";
+import { SidebarNav } from "./SidebarNav";
 
 export function Sidebar({ role, name }: { role: string; name: string }) {
-  const items = navForRole(role);
+  const groups = navGroups(role);
   return (
-    <aside className="flex w-56 flex-col border-r bg-gray-50 p-4">
-      <div className="mb-6">
-        <div className="text-sm font-semibold">Credit Risk</div>
-        <div className="text-xs capitalize text-gray-500">{name} · {role}</div>
+    <aside className="sidebar">
+      <div className="brand">
+        <div className="brand-mark" aria-hidden>
+          <BrandMark />
+        </div>
+        <div>
+          <div className="brand-name">Credit Risk</div>
+          <div className="brand-sub">Scoring Simulator</div>
+        </div>
       </div>
-      <nav className="flex flex-1 flex-col gap-1">
-        {items.map((n) => (
-          <Link key={n.href} href={n.href}
-            className="rounded px-3 py-2 text-sm text-gray-700 hover:bg-gray-200">
-            {n.label}
-          </Link>
-        ))}
-      </nav>
-      <form action={signOut}>
-        <button className="w-full rounded px-3 py-2 text-left text-sm text-gray-600 hover:bg-gray-200">
-          Sign out
-        </button>
-      </form>
+      <SidebarNav groups={groups} />
+      <div className="sidebar-foot">
+        <div className="role-card">
+          <div className="eyebrow">Signed in as</div>
+          <div className="role-name">{name}</div>
+          <div className="role-meta">{role}</div>
+        </div>
+        <form action={signOut}>
+          <button type="submit" className="sidebar-signout">
+            <SignOutIcon />
+            Sign out
+          </button>
+        </form>
+      </div>
     </aside>
   );
 }
