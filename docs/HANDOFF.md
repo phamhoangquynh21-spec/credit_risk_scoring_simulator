@@ -88,28 +88,31 @@ FastAPI ML service (Render)  ── service-role key ─────────
 credit_risk_scoring_simulator/
 ├── src/                       # Python ML core (MVP): generate_data, preprocessing,
 │                              #   train_model, explain (SHAP), fairness, dashboard (Streamlit),
-│                              #   generate_reports.  DO NOT break — 56 tests depend on it.
+│                              #   generate_reports.  DO NOT break — the test suite depends on it.
+│   ├── db/                    #   R2: Supabase access layer (registry, monitoring, fairness, audit, flags)
+│   ├── ml/                    #   R2: registry, feature_contract, calibration, threshold, reason_codes, mitigation, model_card
+│   ├── data/                  #   R2: DataSource interface + real/macro/HMDA/gated connectors
+│   ├── monitoring/            #   R2: drift (PSI/KS), data quality, Prometheus middleware
+│   └── llm/                   #   R2: provider abstraction + grounded credit memos
 ├── services/ml/               # FastAPI ML service (wraps src/): main, settings, auth (JWT+RBAC),
-│                              #   scoring, persistence, errors, routers/*, Dockerfile
-├── frontend/                  # Next.js 16 dashboard (App Router, TS, Tailwind)
-│   ├── src/app/               #   (app) route group (assess/portfolio/performance), login, api/*
-│   ├── src/components/        #   Sidebar, DisclaimerBar, ApplicantForm, ScoreResult, MetricTile, ...
-│   ├── src/lib/               #   supabase clients, ml proxy, format/nav/bands helpers
-│   ├── src/middleware.ts      #   auth gate (hardened: never hard-500s)
-│   └── .env.production        #   PUBLIC Supabase config baked for build (committed on purpose)
-├── supabase/migrations/       # 0001..0007 — schema, RLS, seed-supporting DDL (applied live)
+│                              #   scoring, persistence, errors, routers/* (predict/explain/models/llm/audit)
+├── frontend/                  # Next.js 16 dashboard (App Router, TS, Tailwind) — full section set on the design system
+├── mcp_server/                # R2: read-only MCP server (FastMCP) over the src/ core
+├── supabase/migrations/       # 0001..0008 — schema, RLS, governance, feature-flag default-deny (applied live)
 ├── scripts/                   # ingest_uci.py (real data), seed_platform.py (demo users/portfolio)
-├── data/ models/ reports/     # raw CSV, model.pkl (committed for deploy), metrics.json, reports
-├── docs/                      # specs, plans, runbooks, guides (see §8)
+├── infra/                     # Grafana dashboard, Prometheus reqs, terraform/ (reference IaC, not applied)
+├── data/ models/ reports/     # raw CSV, model.pkl (committed for deploy), metrics.json, reports, model_cards
+├── docs/                      # architecture, handoff, plans, runbooks, guides, data_sources, CHANGELOG (see §8)
 ├── render.yaml                # Render Blueprint for the ML service
 ├── vercel.json                # builds the Next app in frontend/ (@vercel/next) — see §7
-├── requirements.txt           # Python ML deps (root)
+├── requirements.txt           # Python ML deps (root); requirements-{train,llm,mcp}.txt for optional extras
 └── .env                       # secrets (gitignored) — see §5
 ```
 
-Branches: **`main`** contains everything (R1 Plans 1–3 merged). Feature branches
-`feat/r1-foundation`, `feat/r1-plan2-ml-service`, `feat/r1-plan3-frontend` and tags
-`r1-plan{1,2,3}-complete` mark the review milestones.
+Branches: **`main`** contains everything. The six ownership branches
+`feat/stage{1..6}-*` + `feat/stage8-deploy` (db / api / ml / ui / mon / data / deploy)
+are the standing per-area branches; tags `stage-1..8-complete` mark the R2 milestones.
+(R1's `feat/r1-*` branches were merged and removed; the `r1-plan*-complete` tags remain.)
 
 ---
 
@@ -140,7 +143,7 @@ Python side (ML + Streamlit MVP):
 ```bash
 py -m venv .venv                          # Python 3.11+ (3.14 verified)
 .venv/Scripts/python.exe -m pip install -r requirements.txt
-.venv/Scripts/python.exe -m pytest        # 56 tests (needs .env for the live-Supabase RLS tests)
+.venv/Scripts/python.exe -m pytest        # 224 tests (needs .env for the live-Supabase tests; others skip cleanly)
 .venv/Scripts/python.exe -m streamlit run src/dashboard.py     # MVP
 .venv/Scripts/python.exe -m uvicorn services.ml.main:app --port 8000   # ML service
 ```
@@ -150,7 +153,7 @@ Frontend (Next.js) — **Node is portable, not on PATH** (see §9):
 export PATH="/c/Users/Gamer/AppData/Local/nodejs-portable/node-v24.18.0-win-x64:$PATH"
 cd frontend
 npm install
-npm run test          # 10 Vitest tests
+npm run test          # 13 Vitest tests
 npm run dev           # http://localhost:3000 (needs frontend/.env.local; Section 2 needs the ML service at ML_SERVICE_URL)
 npm run build
 ```
