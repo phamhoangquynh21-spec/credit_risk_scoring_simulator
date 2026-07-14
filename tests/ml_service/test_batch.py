@@ -17,6 +17,9 @@ def _client(monkeypatch, existing=None):
     app = create_app()
     app.dependency_overrides[get_principal] = lambda: Principal("user-1", "analyst")
     saved = []
+    monkeypatch.setattr(predict_router, "get_champion",
+                        lambda: {"id": "m1", "semver": "1.0.0-real-uci",
+                                 "threshold": 0.5})
     monkeypatch.setattr(predict_router, "find_existing",
                         lambda uid, h: (existing or {}).get(h))
     def fake_save(uid, feats, scored, factors, portfolio_id=None):
@@ -34,6 +37,10 @@ def test_batch_scores_all(monkeypatch):
     assert body["count"] == 2
     assert len(body["results"]) == 2
     assert len(saved) == 2                    # two new inserts
+    # Stage 2.1 additive fields present on every batch result.
+    for res in body["results"]:
+        assert res["threshold_used"] == 0.5
+        assert res["recommendation"] in {"approve", "decline"}
 
 
 def test_batch_idempotent_reuses_existing(monkeypatch):

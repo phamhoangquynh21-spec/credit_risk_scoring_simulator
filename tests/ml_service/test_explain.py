@@ -1,5 +1,7 @@
+import services.ml.routers.explain as explain_router
 from services.ml.auth import Principal, get_principal
 from services.ml.main import create_app
+from src.ml.reason_codes import CONTRIBUTION_DISCLAIMER
 from fastapi.testclient import TestClient
 
 
@@ -12,9 +14,13 @@ def _applicant():
             "pay_amt4": 1000, "pay_amt5": 1000, "pay_amt6": 1000}
 
 
-def _client():
+def _client(monkeypatch=None):
     app = create_app()
     app.dependency_overrides[get_principal] = lambda: Principal("user-1", "analyst")
+    if monkeypatch is not None:
+        monkeypatch.setattr(explain_router, "get_champion",
+                            lambda: {"id": "m1", "semver": "1.0.0-real-uci",
+                                     "threshold": 0.5})
     return TestClient(app)
 
 
@@ -23,10 +29,14 @@ def test_explain_requires_auth():
     assert r.status_code == 401
 
 
-def test_explain_returns_top_factors():
-    r = _client().post("/api/v1/explain", json=_applicant())
+def test_explain_returns_top_factors(monkeypatch):
+    r = _client(monkeypatch).post("/api/v1/explain", json=_applicant())
     assert r.status_code == 200
     body = r.json()
     assert body["risk_band"] in {"Low", "Medium", "High"}
     assert 1 <= len(body["top_factors"]) <= 5
     assert body["top_factors"][0]["direction"] in {"increases", "decreases"}
+    # Stage 2.2 additive fields: reason codes + mandatory non-causal disclaimer.
+    assert body["disclaimer"] == CONTRIBUTION_DISCLAIMER
+    assert len(body["reason_codes"]) == len(body["top_factors"])
+    assert body["reason_codes"][0]["direction"] in {"increases", "decreases"}

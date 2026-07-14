@@ -17,9 +17,12 @@ def _valid_applicant():
 def _client_with_auth(monkeypatch):
     app = create_app()
     app.dependency_overrides[get_principal] = lambda: Principal("user-1", "analyst")
-    # Persist is stubbed so the endpoint test does not hit the network.
+    # Persist + champion are stubbed so the endpoint test does not hit network.
     monkeypatch.setattr(predict_router, "save_prediction",
                         lambda *a, **k: "pred-123")
+    monkeypatch.setattr(predict_router, "get_champion",
+                        lambda: {"id": "m1", "semver": "1.0.0-real-uci",
+                                 "threshold": 0.5})
     return TestClient(app)
 
 
@@ -38,6 +41,11 @@ def test_predict_returns_scored_response(monkeypatch):
     assert 0 <= body["risk_score"] <= 100
     assert body["prediction_id"] == "pred-123"
     assert body["model_version"]
+    # Stage 2.1 additive fields: threshold + decision-support recommendation.
+    assert body["threshold_used"] == 0.5
+    assert body["recommendation"] in {"approve", "decline"}
+    expected = "decline" if body["probability"] >= 0.5 else "approve"
+    assert body["recommendation"] == expected
 
 
 def test_predict_rejects_bad_schema(monkeypatch):
