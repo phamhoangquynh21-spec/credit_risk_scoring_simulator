@@ -1,11 +1,23 @@
 # Credit Risk Scoring Simulator — Handoff Document
 
-**Last updated:** 2026-07-12
+**Last updated:** 2026-07-13
 **Owner:** Adam Pham (`phamhoangquynh21@gmail.com`)
 **Repo:** https://github.com/phamhoangquynh21-spec/credit_risk_scoring_simulator
 
 This document is the single source of truth for what exists, where it runs, how to
 operate it, and what's next. Read it first before touching anything.
+
+> **R2 status (2026-07-13):** the full `docs/Master_Implementation_Plan.md` build is
+> complete — all 8 stages merged to `main` (tags `stage-1..8-complete`): `src/db`
+> access layer, governed ML lifecycle (`src/ml`: registry, feature contract,
+> calibration, cost-sensitive threshold, reason codes), monitoring + grounded LLM
+> memos (`src/monitoring`, `src/llm`), real/gated data connectors (`src/data`),
+> fairness mitigation + governance (model cards, approval-gated promotion), the
+> FastAPI wiring for all of it, the Next.js dashboard on the approved design system,
+> and a read-only MCP server (`mcp_server/`) + reference Terraform (`infra/terraform/`).
+> **224 Python tests + 13 Vitest, green.** Still open: custom domain (needs a domain),
+> re-tuning the live champion's threshold (machinery built; see the recalibration
+> runbook), and a live `ANTHROPIC_API_KEY` for non-template memos. See `docs/CHANGELOG.md`.
 
 ---
 
@@ -204,10 +216,13 @@ Runbooks: `docs/runbooks/frontend-deploy.md`, `docs/runbooks/ml-service-deploy.m
 
 ## 10. Testing & quality posture
 
-- **Python:** 56 tests (`pytest`) — ML pipeline, preprocessing, batch scoring, ML-service
-  API/auth, RLS penetration tests (prove cross-user isolation), report generation.
-- **Frontend:** 10 tests (`vitest`) — helpers, Supabase clients, RBAC, schema mapping,
-  the SHAP-factor regression test.
+- **Python:** 224 tests (`pytest`) — ML pipeline, preprocessing, batch scoring, ML-service
+  API/auth, RLS penetration tests (prove cross-user isolation), report generation, plus
+  the R2 layers: `src/db` repos, `src/ml` lifecycle, `src/data` connectors, `src/monitoring`
+  drift/quality, `src/llm` grounded memos, fairness mitigation, and the MCP tools.
+  (Some tests are credential-gated and skip cleanly without `.env`.)
+- **Frontend:** 13 tests (`vitest`) — helpers, Supabase clients, RBAC, schema mapping,
+  nav, the SHAP-factor regression test.
 - Everything was built via **subagent-driven development**: implementer + independent
   reviewer per task + a final whole-branch review. That process caught real bugs before
   merge (e.g. the ML Dockerfile missing `supabase`, RLS write-forgery holes, the
@@ -230,15 +245,23 @@ Runbooks: `docs/runbooks/frontend-deploy.md`, `docs/runbooks/ml-service-deploy.m
 
 ## 12. What's next (R2+)
 
-From the platform design's rollout, not yet built:
-- Remaining dashboard sections (Executive Overview, My Portfolios/upload, Explainability
-  Center, Fairness page, Macro context, Governance, Audit Trail, System Health, Settings).
-- **AI-native layer** (R4): Claude-powered credit memos + an MCP server (uses the
-  installed `mcp-builder` skill).
-- Monitoring/drift (Evidently + Grafana), MLflow model registry, cost-sensitive
-  thresholds + calibration, fairness mitigation.
-- Real data connectors behind license/legal gates (bureau, open banking, AU macro).
-- A custom domain (currently the free `*.vercel.app`).
+The R2 build (Master Plan Stages 1–8) is **done** — see the R2 status note at the top
+and `docs/CHANGELOG.md`. What genuinely remains:
+
+- **Custom domain** (Master Plan 8.3): reference Terraform is committed but the app
+  still runs on the free `*.vercel.app` / Render / Supabase stack. Needs a domain the
+  owner provides + DNS access; then point it at Vercel/Render.
+- **Re-tune the live champion's threshold**: the cost-sensitive threshold machinery
+  (`src/ml/threshold.py`, FN:FP 5:1) is built and tested, but the live champion
+  `1.0.0-real-uci` still stores `threshold=0.5`. Re-tuning is a data step — follow
+  `docs/runbooks/recalibration.md`.
+- **Live LLM memos**: the grounded-memo layer works today via a deterministic template;
+  set `ANTHROPIC_API_KEY` (+ `pip install anthropic`) to switch to live Claude.
+- **Enable a gated connector** (bureau / open banking / Freddie Mac): flip its
+  `feature_flags` row on *and* provide credentials — both are required, and each fails
+  loudly otherwise (see `docs/data_sources.md`).
+- **Cloud migration / CI-CD blue-green** (Master Plan 8.1–8.2): the Terraform blueprint
+  exists; standing it up is a business decision (cost + a cloud account).
 
 ---
 
