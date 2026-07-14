@@ -39,7 +39,41 @@ def create_app() -> FastAPI:
     from .routers import explain
     app.include_router(explain.router)
 
+    from .routers import llm
+    app.include_router(llm.router)
+
+    from .routers import audit
+    app.include_router(audit.router)
+
+    _wire_metrics(app)
+
     return app
+
+
+def _wire_metrics(app: FastAPI) -> None:
+    """Wire Prometheus request metrics + a /metrics route. Optional: if
+    prometheus_client is not installed the service still starts (degraded, no
+    metrics) — a missing lib must never stop app startup on Render."""
+    import logging
+
+    log = logging.getLogger("ml_service")
+    try:
+        from src.monitoring.prometheus_mw import metrics_middleware
+        app.add_middleware(metrics_middleware())
+    except Exception as exc:  # prometheus_client missing / any wiring failure
+        log.warning("prometheus metrics middleware disabled: %s", exc)
+
+    @app.get("/metrics")
+    def metrics():
+        from fastapi.responses import Response
+
+        from src.monitoring.prometheus_mw import metrics_endpoint
+        try:
+            return Response(content=metrics_endpoint(),
+                            media_type="text/plain; version=0.0.4")
+        except Exception as exc:  # prometheus_client not installed
+            raise AppError("metrics_unavailable",
+                           "metrics collection is not available", 503) from exc
 
 
 app = create_app()
