@@ -16,7 +16,7 @@ services:
     dockerCommand: uvicorn services.ml.main:app --host 0.0.0.0 --port $PORT
     plan: free
     healthCheckPath: /health
-    autoDeploy: false
+    autoDeploy: true   # redeploy on every push to the connected branch (main)
     envVars:
       - key: SUPABASE_URL
         sync: false
