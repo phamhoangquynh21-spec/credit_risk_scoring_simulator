@@ -526,3 +526,71 @@ figcaption { font-size: var(--text-xs); color: var(--color-text-muted); margin-t
   .disclaimer { padding: var(--space-2) var(--space-4); font-size: var(--text-xs); }
 }
 @media (max-width: 520px) { .kpi-row { grid-template-columns: 1fr; } }
+
+/* ============================================================================
+   Screen-specific: Fairness & Responsible AI
+   ========================================================================== */
+.status-banner { display: flex; align-items: flex-start; gap: var(--space-4);
+  padding: var(--space-4) var(--space-5); border-radius: var(--radius-lg);
+  margin-bottom: var(--space-4); }
+.status-banner.warn { border: 1px solid var(--risk-medium-border); background: var(--warning-surface); }
+.status-banner.warn .big, .status-banner.warn h2, .status-banner.warn p { color: var(--risk-medium-text); }
+.status-banner.ok { border: 1px solid var(--success); background: var(--success-surface); }
+.status-banner.ok .big, .status-banner.ok h2, .status-banner.ok p { color: var(--success); }
+.status-banner .big { font-family: var(--font-mono); font-size: var(--text-metric);
+  font-weight: 500; line-height: 1.1; }
+.status-banner h2 { font-size: var(--text-md); }
+.status-banner p { margin: var(--space-1) 0 0; font-size: var(--text-sm); max-width: 64ch; }
+
+.grp-row { display: grid; grid-template-columns: 160px 1fr 70px; align-items: center;
+  gap: var(--space-3); font-size: var(--text-sm); margin-bottom: var(--space-2); }
+.grp-row .g { color: var(--color-text); }
+.grp-row .v { font-family: var(--font-mono); text-align: right; color: var(--color-text-secondary);
+  font-size: var(--text-xs); }
+.ratio-bar { position: relative; height: 26px; background: var(--color-surface-sunken);
+  border-radius: var(--radius-sm); overflow: visible; }
+.ratio-fill { position: absolute; top: 4px; bottom: 4px; left: 0; border-radius: 3px; }
+.ratio-rule { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--color-text); left: 80%; }
+.ratio-rule::after { content: "0.80 rule"; position: absolute; top: -16px; left: -24px;
+  font-size: 10px; font-family: var(--font-mono); color: var(--color-text-secondary); white-space: nowrap; }
+@media (max-width: 560px) { .grp-row { grid-template-columns: 100px 1fr 60px; } }
+
+/* ============================================================================
+   Screen-specific: Explainability (global importance + waterfall)
+   ========================================================================== */
+.imp-row { display: grid; grid-template-columns: 210px 1fr 64px; align-items: center;
+  gap: var(--space-3); font-size: var(--text-sm); margin-bottom: var(--space-2); }
+.imp-row .f { color: var(--color-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.imp-track { height: 16px; background: var(--color-surface-sunken); border-radius: var(--radius-sm); overflow: hidden; }
+.imp-bar { height: 100%; background: var(--chart-1); border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+.imp-row .v { font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: right;
+  font-size: var(--text-xs); color: var(--color-text-secondary); }
+@media (max-width: 640px) { .imp-row { grid-template-columns: 130px 1fr 56px; } }
+
+.wf-row { display: grid; grid-template-columns: 200px 1fr 72px; align-items: center;
+  gap: var(--space-3); font-size: var(--text-sm); margin-bottom: var(--space-2); }
+.wf-row .f { color: var(--color-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wf-row .f small { display: block; color: var(--color-text-muted); font-size: var(--text-xs); }
+.wf-track { position: relative; height: 18px; background: var(--color-surface-sunken); border-radius: var(--radius-sm); }
+.wf-bar { position: absolute; top: 2px; bottom: 2px; border-radius: 3px; }
+.wf-row .v { font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: right;
+  font-size: var(--text-xs); color: var(--color-text-secondary); }
+.wf-anchor { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-secondary); text-align: right; }
+@media (max-width: 640px) { .wf-row { grid-template-columns: 120px 1fr 60px; } }
+
+/* SHAP signed bars (assessment + explainability) */
+.shap { display: flex; flex-direction: column; gap: var(--space-2); }
+.shap-row { display: grid; grid-template-columns: 200px 1fr 64px; align-items: center;
+  gap: var(--space-3); font-size: var(--text-sm); }
+.shap-row .f { color: var(--color-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.shap-row .f small { display: block; color: var(--color-text-muted); font-size: var(--text-xs); }
+.shap-track { position: relative; height: 18px; background: var(--color-surface-sunken);
+  border-radius: var(--radius-sm); overflow: hidden; }
+.shap-track::after { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px;
+  background: var(--color-border-strong); }
+.shap-bar { position: absolute; top: 2px; bottom: 2px; border-radius: 3px; }
+.shap-bar.up { left: 50%; background: var(--contrib-up); }
+.shap-bar.down { right: 50%; background: var(--contrib-down); }
+.shap-row .v { font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: right;
+  font-size: var(--text-xs); color: var(--color-text-secondary); }
+@media (max-width: 640px) { .shap-row { grid-template-columns: 120px 1fr 56px; } }
