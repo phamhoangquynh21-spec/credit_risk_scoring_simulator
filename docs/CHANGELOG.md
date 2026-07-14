@@ -1,5 +1,42 @@
 # Changelog
 
+## Stage 2 — API wiring (2026-07-13)
+
+Wires the Stage 3/5/7 capabilities into the live FastAPI ML service
+(`services/ml/`). All response-schema changes are **additive** (new optional
+fields only) so the deployed frontend contract is unbroken; the app still starts
+when the optional `prometheus_client`/`anthropic` packages are absent.
+
+**2.1 threshold in `/predict`**: `PredictResponse` gains `threshold_used` and
+`recommendation` (`"decline"` if `probability >= champion.threshold` else
+`"approve"` — decision-support only; the human analyst decides). Applied to both
+`/api/v1/predict` and `/api/v1/predict/batch`.
+
+**2.2 reason codes in `/explain`**: `ExplainResponse` gains `reason_codes` and
+`disclaimer`, populated via `src.ml.reason_codes.build_explanation_payload`.
+`top_factors` is unchanged.
+
+**2.3 credit-memo endpoint** (`routers/llm.py`): `POST
+/api/v1/llm-reports/credit-memo` scores an applicant and returns a grounded memo
+via `src.llm.generate_memo`. Uses `AnthropicProvider` when `ANTHROPIC_API_KEY` is
+set, else the deterministic template fallback — so it works out of the box. Live
+memos need the `anthropic` package + `ANTHROPIC_API_KEY` (not added to
+requirements).
+
+**2.4 `/metrics`** (`main.py`): Prometheus request middleware +
+`GET /metrics` via `src.monitoring.prometheus_mw`, both wrapped so a missing
+`prometheus_client` logs a warning and **never blocks startup** (`/metrics` then
+returns 503). Added `prometheus-client>=0.20` to `services/ml/requirements.txt`.
+
+**2.5 audit export** (`routers/audit.py`): `GET /api/v1/audit/events` gated to
+`governance`/`compliance` (admin always allowed), reading recent `audit_logs`
+via `src.db.get_service_client()`; `?format=csv` returns `text/csv`.
+
+**2.6 governance-gated promote** (`routers/models.py`): `POST
+/api/v1/models/{semver}/promote` gated to `governance`, calls
+`src.db.promote_model(..., approved_by=principal.user_id)`; the data-layer
+`ValueError` gate surfaces as a `400 promotion_rejected` envelope.
+
 ## Stage 7 — fairness mitigation + governance (2026-07-13)
 
 **7.1 mitigation** (`src/ml/mitigation.py`): Kamiran–Calders `reweigh` sample
