@@ -32,6 +32,19 @@ export function NavGlyph({ name }: { name: NavIcon }) {
       );
     case "gauge":
       return (<svg {...base}><path d="M12 13l4-4M4 20a8 8 0 1 1 16 0" /><circle cx="12" cy="13" r="1.4" /></svg>);
+    case "shield":
+      return (<svg {...base}><path d="M12 2l7 4v6c0 5-3 7-7 8-4-1-7-3-7-8V6z" /></svg>);
+    case "list":
+      return (<svg {...base}><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" /></svg>);
+    case "pulse":
+      return (<svg {...base}><path d="M3 12h4l3 8 4-16 3 8h4" /></svg>);
+    case "cog":
+      return (
+        <svg {...base}>
+          <circle cx="12" cy="12" r="3" />
+          <path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1l2.1-2.1M17 7l2.1-2.1" />
+        </svg>
+      );
   }
 }
 

@@ -19,6 +19,16 @@ describe("navForRole", () => {
     expect(hrefs).toContain("/performance");
     expect(hrefs).toContain("/fairness");
   });
+  it("exposes the admin section only to privileged roles", () => {
+    expect(navForRole("analyst").map((n) => n.href)).not.toContain("/audit");
+    for (const role of ["admin", "compliance", "governance"]) {
+      const hrefs = navForRole(role).map((n) => n.href);
+      expect(hrefs).toContain("/governance");
+      expect(hrefs).toContain("/audit");
+      expect(hrefs).toContain("/system");
+      expect(hrefs).toContain("/settings");
+    }
+  });
 });
 
 describe("navGroups", () => {
