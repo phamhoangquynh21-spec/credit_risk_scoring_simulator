@@ -20,6 +20,22 @@ router = APIRouter(prefix="/api/v1/audit", tags=["audit"])
 _COLUMNS = ["id", "actor_id", "action", "entity_type", "entity_id", "detail",
             "created_at"]
 
+# Characters that make a spreadsheet treat a cell as a formula. csv quoting is
+# structural only, so we neutralize these by prefixing a single quote.
+_FORMULA_TRIGGERS = ("=", "+", "-", "@", "\t", "\r")
+
+
+def _csv_safe(value) -> str:
+    """Neutralize spreadsheet formula injection: if the stringified cell starts
+    with a formula trigger (= + - @ tab CR), prefix a single quote so Excel /
+    Sheets render it as literal text instead of executing it."""
+    if value is None:
+        return ""
+    text = str(value)
+    if text.startswith(_FORMULA_TRIGGERS):
+        return "'" + text
+    return text
+
 
 def _recent_events(limit: int) -> list[dict]:
     return (db.get_service_client().table("audit_logs")
@@ -39,6 +55,6 @@ def audit_events(
         writer = csv.DictWriter(buf, fieldnames=_COLUMNS, extrasaction="ignore")
         writer.writeheader()
         for row in rows:
-            writer.writerow({c: row.get(c) for c in _COLUMNS})
+            writer.writerow({c: _csv_safe(row.get(c)) for c in _COLUMNS})
         return Response(content=buf.getvalue(), media_type="text/csv")
     return {"count": len(rows), "events": rows}
