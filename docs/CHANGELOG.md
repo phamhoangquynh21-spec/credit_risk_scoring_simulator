@@ -1,5 +1,24 @@
 # Changelog
 
+## Stage 8 — MCP server + reference IaC (2026-07-13)
+
+**MCP server** (`mcp_server/`): a Model Context Protocol server exposing the
+platform as seven **read-only** tools — `credit_risk_score_applicant`,
+`_explain_applicant`, `_generate_memo`, `_get_champion`, `_get_model_card`,
+`_recent_drift`, `_list_data_sources`. Tool logic lives in `tools.py` (plain
+Pydantic-validated functions, unit-tested in `tests/mcp/` without the `mcp` SDK);
+`server.py` wires them into `FastMCP` with the SDK imported lazily. Scoring/
+explain/memo run offline from `models/model.pkl`; registry/monitoring tools read
+Supabase and return an actionable message when credentials are absent. `mcp` in
+`requirements-mcp.txt` (server-only); Claude Desktop config in `mcp_server/README.md`.
+
+**Reference IaC** (`infra/terraform/`): committed, reviewed Terraform for a future
+single-cloud migration (Cloud Run + Cloud SQL + Memorystore + Cloud Storage +
+Secret Manager) off the managed Supabase/Vercel/Render stack. **Not applied** — no
+backend/state, no credentials; it is the migration blueprint (Master Plan 8.1).
+
+Custom domain (Master Plan 8.3) is pending a domain the owner provides.
+
 ## Stage 2 — API wiring (2026-07-13)
 
 Wires the Stage 3/5/7 capabilities into the live FastAPI ML service
