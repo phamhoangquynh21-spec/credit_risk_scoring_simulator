@@ -1,13 +1,17 @@
 import { ApplicantForm } from "@/components/ApplicantForm";
+import { PageHeader } from "@/components/PageHeader";
 
 export default function AssessPage() {
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-semibold">Single Applicant Assessment</h1>
-        <p className="text-sm text-gray-500">Score one applicant and see the factors behind it.</p>
+    <>
+      <PageHeader
+        eyebrow="Assessment"
+        title="Assess an applicant"
+        subtitle="Enter the applicant's profile, review the model's estimate and its drivers, then record your decision."
+      />
+      <div className="content">
+        <ApplicantForm />
       </div>
-      <ApplicantForm />
-    </div>
+    </>
   );
 }
