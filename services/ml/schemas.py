@@ -43,6 +43,11 @@ class PredictResponse(BaseModel):
     probability: float
     model_version: str
     prediction_id: str | None = None
+    # Decision-support only: threshold_used is the champion's decision threshold
+    # and recommendation is "decline" if probability >= threshold else "approve".
+    # This is a suggestion; the human analyst makes the actual credit decision.
+    threshold_used: float | None = None
+    recommendation: str | None = None
 
 
 class ExplainFactor(BaseModel):
@@ -57,6 +62,9 @@ class ExplainResponse(BaseModel):
     risk_band: str
     model_version: str
     top_factors: list[ExplainFactor]
+    # Analyst-ready reason codes + mandatory non-causal disclaimer (Stage 3.5).
+    reason_codes: list[dict] = Field(default_factory=list)
+    disclaimer: str = ""
 
 
 class BatchPredictRequest(BaseModel):

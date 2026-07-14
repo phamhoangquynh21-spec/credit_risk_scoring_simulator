@@ -12,6 +12,13 @@ from ..scoring import explain_one, score_one
 router = APIRouter(prefix="/api/v1", tags=["predict"])
 
 
+def _recommendation(probability: float, threshold: float) -> str:
+    """Decision-support recommendation, NOT an automated decision: 'decline'
+    when the predicted default probability meets/exceeds the champion's
+    threshold, else 'approve'. The human analyst makes the final call."""
+    return "decline" if probability >= threshold else "approve"
+
+
 @router.post("/predict", response_model=PredictResponse)
 def predict(applicant: Applicant,
             principal: Principal = Depends(get_principal)) -> PredictResponse:
@@ -19,10 +26,13 @@ def predict(applicant: Applicant,
     scored = score_one(raw)
     factors = explain_one(raw)
     pid = save_prediction(principal.user_id, applicant.model_dump(), scored, factors)
+    champ = get_champion()
+    threshold = champ["threshold"]
     return PredictResponse(
         risk_score=scored["risk_score"], risk_band=scored["risk_band"],
-        probability=scored["probability"], model_version=get_champion()["semver"],
-        prediction_id=pid)
+        probability=scored["probability"], model_version=champ["semver"],
+        prediction_id=pid, threshold_used=threshold,
+        recommendation=_recommendation(scored["probability"], threshold))
 
 
 @router.post("/predict/batch", response_model=BatchPredictResponse)
@@ -32,7 +42,9 @@ def predict_batch(
     principal: Principal = Depends(get_principal),
     idempotency_key: str | None = Header(default=None),
 ) -> BatchPredictResponse:
-    version = get_champion()["semver"]
+    champ = get_champion()
+    version = champ["semver"]
+    threshold = champ["threshold"]
     results = []
     for applicant in req.applicants:
         raw = applicant.to_raw_row()
@@ -47,7 +59,8 @@ def predict_batch(
         results.append(PredictResponse(
             risk_score=scored["risk_score"], risk_band=scored["risk_band"],
             probability=scored["probability"], model_version=version,
-            prediction_id=pid))
+            prediction_id=pid, threshold_used=threshold,
+            recommendation=_recommendation(scored["probability"], threshold)))
     if idempotency_key is not None:
         response.headers["Idempotency-Key"] = idempotency_key
     return BatchPredictResponse(model_version=version, count=len(results),
