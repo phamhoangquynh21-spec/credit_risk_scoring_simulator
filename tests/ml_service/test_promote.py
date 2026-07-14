@@ -11,6 +11,12 @@ def _client(monkeypatch, role, fake_promote):
     return TestClient(app)
 
 
+def test_promote_requires_auth():
+    r = TestClient(create_app()).post(
+        "/api/v1/models/1.2.0/promote", json={"to_stage": "champion"})
+    assert r.status_code == 401
+
+
 def test_promote_forbidden_for_analyst(monkeypatch):
     def _should_not_run(*a, **k):
         raise AssertionError("promote_model must not be reached for analyst")
