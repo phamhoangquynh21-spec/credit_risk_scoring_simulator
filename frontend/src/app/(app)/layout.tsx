@@ -10,12 +10,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const { data: profile } = await supabase.from("profiles")
     .select("role, display_name").eq("user_id", user.id).single();
   const role = profile?.role ?? "analyst";
+  const name = profile?.display_name ?? "User";
   return (
-    <div className="flex h-screen">
-      <Sidebar role={role} name={profile?.display_name ?? "User"} />
-      <div className="flex flex-1 flex-col overflow-hidden">
+    <div className="app">
+      <Sidebar role={role} name={name} />
+      <div className="main">
+        <div className="mobile-bar">
+          <span className="brand-name">Credit Risk</span>
+          <span className="eyebrow" style={{ color: "#8FA3C0" }}>Synthetic demo</span>
+        </div>
         <DisclaimerBar />
-        <main className="flex-1 overflow-auto p-6">{children}</main>
+        {children}
       </div>
     </div>
   );

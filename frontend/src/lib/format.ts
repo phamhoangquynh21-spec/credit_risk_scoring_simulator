@@ -6,6 +6,12 @@ export function riskBand(score: number): Band {
   return "High";
 }
 
+// Returns the design-system risk-band color as a CSS custom-property reference
+// (theme-aware). Callers use it as an SVG/CSS fill.
 export function bandColor(band: string): string {
-  return band === "Low" ? "#16a34a" : band === "Medium" ? "#d97706" : "#dc2626";
+  return band === "Low"
+    ? "var(--risk-low)"
+    : band === "Medium"
+    ? "var(--risk-medium)"
+    : "var(--risk-high)";
 }
