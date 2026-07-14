@@ -1,5 +1,29 @@
 # Changelog
 
+## Stage 7 — fairness mitigation + governance (2026-07-13)
+
+**7.1 mitigation** (`src/ml/mitigation.py`): Kamiran–Calders `reweigh` sample
+weights + `per_group_thresholds` (reuse the cost-sensitive `optimize_threshold`)
++ `disparity_ratio` and `evaluate_mitigation`, which compares a single global
+threshold vs per-group thresholds on the four-fifths / 0.8 rule so governance can
+read off the accuracy-vs-fairness trade-off. Implemented with numpy/sklearn;
+`fairlearn` is the documented optional upgrade. Per-group thresholds are surfaced
+as a **governance experiment**, not auto-applied (applying different cut-offs by a
+protected attribute can itself be disparate treatment).
+
+**7.2 governance**: promoting a model to `champion` now **requires a governance
+approver** — `promote_model(semver, "champion", approved_by=...)` refuses the
+promotion before any write when `approved_by` is missing, stamps the approver on
+the row, and audit-logs it (`src/db/models_repo.py`). Auto-generated **model
+cards** (`src/ml/model_card.py`) render identity, metrics, the decision-support
+disclaimer, and the per-group fairness table (flagging groups under the 0.8 rule)
+from the live registry + fairness results.
+
+**7.3**: `docs/runbooks/recalibration.md` — the end-to-end procedure to recalibrate
+on new portfolio data (ingest → temporal split → retrain/register → recalibrate →
+fairness rerun → governance-approved promotion), keeping the champion untouched
+until sign-off.
+
 ## Stage 5 — monitoring + grounded LLM memos (2026-07-13)
 
 Added `src/monitoring/` and `src/llm/` — all optional dependencies
