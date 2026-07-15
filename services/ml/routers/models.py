@@ -11,7 +11,7 @@ from src import config
 
 from ..auth import Principal, get_principal, require_role
 from ..errors import AppError
-from ..persistence import get_champion
+from ..persistence import get_champion, invalidate_champion_cache
 from ..scoring import load_bundle
 
 router = APIRouter(prefix="/api/v1/models", tags=["models"])
@@ -42,4 +42,7 @@ def promote(semver: str, body: PromoteRequest,
     except ValueError as exc:
         # e.g. invalid stage, unknown semver, or champion without approval.
         raise AppError("promotion_rejected", str(exc), 400) from exc
+    # Serve the newly approved champion immediately rather than waiting out the
+    # cache TTL — an approved promotion should not keep scoring on the old model.
+    invalidate_champion_cache()
     return {"semver": semver, "stage": row["stage"], "approved_by": principal.user_id}

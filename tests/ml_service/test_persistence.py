@@ -11,11 +11,17 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def test_get_champion_returns_registered_version():
-    from services.ml.persistence import get_champion
+def test_get_champion_returns_the_registered_champion():
+    """Assert the contract, not a hardcoded semver: a governance-approved
+    promotion legitimately changes which version is champion, and a test must
+    not break because production did the thing it is designed to do."""
+    from services.ml.persistence import get_champion, service_client
     champ = get_champion()
-    assert champ["semver"] == "1.0.0-real-uci"
-    assert "id" in champ
+    assert {"id", "semver", "threshold"} <= set(champ)
+    assert isinstance(champ["threshold"], (int, float))
+    live = (service_client().table("model_versions").select("semver")
+            .eq("stage", "champion").execute().data)
+    assert champ["semver"] in {r["semver"] for r in live}
 
 
 def test_save_prediction_roundtrip():
