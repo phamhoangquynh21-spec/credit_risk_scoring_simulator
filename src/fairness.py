@@ -36,18 +36,24 @@ def _group_labels(attr: str, values: pd.Series) -> pd.Series:
 
 
 def run_fairness_audit(
-    model, X_test, y_test, protected_attrs: list[str] | None = None
+    model, X_test, y_test, protected_attrs: list[str] | None = None,
+    threshold: float = 0.5,
 ) -> pd.DataFrame:
     """Return a per-group fairness comparison table.
 
     ``protected_attrs`` may include 'sex', 'education', 'marriage' and the
     special 'age_group' (derived from the ``age`` column).
+
+    ``threshold`` is the decision cut-off the audit scores against. Audit a
+    model at the threshold it is actually *deployed* with (a model version's
+    cost-tuned threshold), otherwise the group selection rates describe a
+    system nobody is running. Defaults to 0.5 for backwards compatibility.
     """
     if protected_attrs is None:
         protected_attrs = ["sex", "education", "age_group"]
 
     proba = model.predict_proba(X_test)[:, 1]
-    pred = (proba >= 0.5).astype(int)
+    pred = (proba >= threshold).astype(int)
 
     data = X_test.copy()
     data["_y"] = np.asarray(y_test)
