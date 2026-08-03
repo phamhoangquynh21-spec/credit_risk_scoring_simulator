@@ -8,7 +8,7 @@ workflow.
 > **Status:** complete, runnable end-to-end, deploy-ready.
 > **Author:** Adam Pham.
 
-**🔗 Live demo:** https://creditriskscoringsimulator-dzqtmjsoouv4ud4pk5siae.streamlit.app &nbsp;·&nbsp; 
+**🔗 Live demo:** https://creditriskscoringsimulator-qbazrh3hgieflbhtfatuvr.streamlit.app &nbsp;·&nbsp; 
 **📦 Code:** https://github.com/phamhoangquynh21-spec/credit_risk_scoring_simulator
 
 ---
