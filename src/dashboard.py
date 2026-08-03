@@ -59,8 +59,12 @@ def load_metrics():
 
 @st.cache_data
 def load_processed():
+    if not config.PROCESSED_CSV.exists():
+        df = preprocessing.build_processed_dataset(config.RAW_CSV)
+        config.PROCESSED_CSV.parent.mkdir(parents=True, exist_ok=True)
+        df.to_csv(config.PROCESSED_CSV, index=False)
+        return df
     return pd.read_csv(config.PROCESSED_CSV)
-
 
 @st.cache_data
 def get_test_split():
