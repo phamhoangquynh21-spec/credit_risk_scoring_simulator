@@ -26,8 +26,6 @@ Thumbs.db
 !**/.gitkeep
 .superpowers/
 
-# MLflow local file store (created by requirements-train.txt training runs)
-mlruns/
 
 # Secrets
 .env

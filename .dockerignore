@@ -1,9 +1,0 @@
-.env
-.venv/
-.git/
-__pycache__/
-*.pyc
-.superpowers/
-data/
-tests/
-notebooks/
