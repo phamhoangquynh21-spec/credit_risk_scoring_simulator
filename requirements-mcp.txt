@@ -1,3 +1,0 @@
-# MCP server dependency — optional; the tool logic in mcp_server/tools.py is
-# testable without it, and mcp_server/server.py imports it lazily.
-mcp>=1.2

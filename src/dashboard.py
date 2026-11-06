@@ -26,7 +26,7 @@ try:
     from . import config, fairness
     from .explain import explain_in_plain_language, risk_score, score_batch
     from .generate_data import generate_raw
-    from .preprocessing import split_data
+    from .preprocessing import build_processed_dataset, split_data
 except ImportError:  # pragma: no cover - executed only under `streamlit run`
     import sys
     from pathlib import Path
@@ -35,7 +35,7 @@ except ImportError:  # pragma: no cover - executed only under `streamlit run`
     from src import config, fairness
     from src.explain import explain_in_plain_language, risk_score, score_batch
     from src.generate_data import generate_raw
-    from src.preprocessing import split_data
+    from src.preprocessing import build_processed_dataset, split_data
 
 
 st.set_page_config(page_title="Credit Risk Scoring Simulator", page_icon="💳", layout="wide")
@@ -59,6 +59,10 @@ def load_metrics():
 
 @st.cache_data
 def load_processed():
+    # data/processed/ is gitignored, so a fresh clone (e.g. Streamlit Cloud)
+    # rebuilds it from the committed raw CSV.
+    if not config.PROCESSED_CSV.exists():
+        return build_processed_dataset()
     return pd.read_csv(config.PROCESSED_CSV)
 
 
